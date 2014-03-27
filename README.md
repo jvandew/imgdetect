@@ -3,7 +3,11 @@ imgdetect
 
 Object recognition in images. Currently just a work in progress Bayesian topic model detector built for a class project.
 
-The included test file can compiled and run using:
+The included test file can compiled and run (in one step) using:
+
+    make go
+
+Alternatively, shell masochists can compile and run manually with:
 
     scalac -cp .:share/OpenCV/java/opencv-248.jar CVTest.scala
     scala -cp .:share/OpenCV/java/opencv-248.jar -Djava.library.path=share/OpenCV/java CVTest
