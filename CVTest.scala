@@ -4,6 +4,7 @@ import javax.imageio.ImageIO
 import javax.swing.{ImageIcon, JFrame, JLabel}
 import org.opencv.core.{Core, Mat, MatOfByte, MatOfFloat, MatOfPoint, Point, Size, Scalar}
 import org.opencv.highgui.Highgui
+import org.opencv.imgproc.Imgproc
 import org.opencv.objdetect.HOGDescriptor
 import scala.math.{cos, sin, toRadians}
 
@@ -112,7 +113,7 @@ object CVTest {
             val p1 = new Point(x1, y1)
             val p2 = new Point(x2, y2)
 
-            Core.line(img, p1, p2, new Scalar(0, 0, 0), 1)
+            Core.line(img, p1, p2, new Scalar(0, 255, 0), 1)
 
           }
         }
@@ -132,6 +133,8 @@ object CVTest {
 
     val img = Highgui.imread("resources/lena.png",
                              Highgui.CV_LOAD_IMAGE_GRAYSCALE)
+    val colorimg = new Mat
+    Imgproc.cvtColor(img, colorimg, Imgproc.COLOR_GRAY2RGB)
 
     val winSize = new Size(512, 512) // size of lena
     val blockSize = new Size(64, 64)
@@ -144,7 +147,7 @@ object CVTest {
     val locs = new MatOfPoint
     hog.compute(img, descVals, new Size(0, 0), new Size(0, 0), locs)
 
-    val hogimg = getHOGDescriptorVisual(img)(descVals.toArray)(winSize)(cellSize)(3.0f)
+    val hogimg = getHOGDescriptorVisual(colorimg)(descVals.toArray)(winSize)(cellSize)(3.0f)
     Highgui.imencode(".png", hogimg, byteMat)
     
     val bytes = byteMat.toArray
