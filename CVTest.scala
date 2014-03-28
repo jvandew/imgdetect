@@ -29,18 +29,18 @@ object CVTest {
 
   // Assistance with visualization algorithm found here:
   // http://www.juergenwiki.de/work/wiki/doku.php?id=public%3ahog_descriptor_computation_and_visualization
-  def getHOGDescriptorVisual (image: Mat) (descVals: Array[Float])
-                             (winSize: Size) (cellSize: Size)
+  def getHOGDescriptorVisual (image: Mat)
+                             (descVals: Array[Float], winSize: Size,
+                                 cellSize: Size, numBins: Int)
                              (visScaler: Float) : Mat = {
 
     val img = image.clone
-    val gradientBinSize = 9;
-    val radRangeForOneBin = toRadians(180.0 / gradientBinSize)
-    val cellsInXDir = (winSize.width / cellSize.width).toInt
-    val cellsInYDir = (winSize.height / cellSize.height).toInt
+    val binRads = toRadians(180.0 / numBins)
+    val cellsInXDir = winSize.width / cellSize.width
+    val cellsInYDir = winSize.height / cellSize.height
     val numCells = cellsInXDir * cellsInYDir
 
-    val gradientStrengths = Array.ofDim[Float](cellsInYDir, cellsInXDir, gradientBinSize)
+    val gradientStrengths = Array.ofDim[Float](cellsInYDir, cellsInXDir, numBins)
     val cellUpdateCounter = Array.ofDim[Int](cellsInYDir, cellsInXDir)
 
     val blocksInXDir = cellsInXDir - 1
@@ -59,7 +59,7 @@ object CVTest {
             case 3 => (blockx + 1, blocky + 1)
           }
 
-          for (bin <- 0 until gradientBinSize) {
+          for (bin <- 0 until numBins) {
             gradientStrengths(celly)(cellx)(bin) += descVals(descDataIdx)
             descDataIdx += 1
           }
@@ -76,7 +76,7 @@ object CVTest {
 
         val numUpdates = cellUpdateCounter(celly)(cellx)
 
-        for (bin <- 0 until gradientBinSize) {
+        for (bin <- 0 until numBins) {
           gradientStrengths(celly)(cellx)(bin) /= numUpdates
         }
 
@@ -86,32 +86,30 @@ object CVTest {
     for (celly <- 0 until cellsInYDir) {
       for (cellx <- 0 until cellsInXDir) {
 
-        val drawX = cellx * cellSize.width
-        val drawY = celly * cellSize.height
-        val mx = drawX + cellSize.width / 2
-        val my = drawY + cellSize.height / 2
-        val topLeft = new Point(drawX, drawY)
-        val botRight = new Point(drawX + cellSize.width, drawY + cellSize.height)
+        val tlX = cellx * cellSize.width
+        val tlY = celly * cellSize.height
+        val topLeft = new Point(tlX, tlY)
+        val botRight = new Point(tlX + cellSize.width, tlY + cellSize.height)
 
         Core.rectangle(img, topLeft, botRight, new Scalar(100, 100, 100), 1)
 
-        for (bin <- 0 until gradientBinSize) {
+        for (bin <- 0 until numBins) {
 
-          val currentGradStrength = gradientStrengths(celly)(cellx)(bin)
+          val gradStrength = gradientStrengths(celly)(cellx)(bin)
 
-          if (currentGradStrength > 0) {
+          if (gradStrength > 0) {
 
-            val currRad = bin * radRangeForOneBin + radRangeForOneBin / 2
+            val currRad = bin*binRads + binRads/2
             val dirVecX = cos(currRad)
             val dirVecY = sin(currRad)
             val maxVecLen = cellSize.width / 2
+            val mx = drawX + cellSize.width/2
+            val my = drawY + cellSize.height/2
+            val xLen = dirVecX*gradStrength*maxVecLen*visScaler
+            val yLen = dirVecY*gradStrength*maxVecLen*visScaler
 
-            val x1 = mx - dirVecX * currentGradStrength * maxVecLen * visScaler
-            val y1 = my - dirVecY * currentGradStrength * maxVecLen * visScaler
-            val x2 = mx + dirVecX * currentGradStrength * maxVecLen * visScaler
-            val y2 = my + dirVecY * currentGradStrength * maxVecLen * visScaler
-            val p1 = new Point(x1, y1)
-            val p2 = new Point(x2, y2)
+            val p1 = new Point(mx - xLen, my - yLen)
+            val p2 = new Point(mx + xLen, my + yLen)
 
             Core.line(img, p1, p2, new Scalar(0, 255, 0), 1)
 
