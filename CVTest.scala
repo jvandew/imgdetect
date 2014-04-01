@@ -155,12 +155,11 @@ object CVTest {
     val img = Highgui.imread("resources/lena.png", Highgui.CV_LOAD_IMAGE_GRAYSCALE)
 
     var winSize = new Size(512, 512) // size of lena
-    var blockSize = new Size(64, 64)
+    var blockSize = new Size(32, 32)
     var blockStride = new Size(32, 32)
     var cellSize = new Size(32, 32)
     var numBins = 9
 
-    computeAndDisplayHOG(img)(winSize, blockSize, blockStride, cellSize, numBins)(2.5f)("Test Image")
-
+    computeAndDisplayHOG(img)(winSize, blockSize, blockStride, cellSize, numBins)(1.2f)("bs = 32x32")
   }
 }
