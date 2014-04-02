@@ -1,6 +1,2 @@
-// ADT for PASCAL object types (granted right now we only have one type but someday...)
-sealed trait PASCALObject
-
-sealed trait PASPerson extends PASCALObject
-
-case object UprightPerson extends PASPerson
+// Container class for PASCAL annotation objects
+case class PASCALObject (val label: PASCALObjectLabel, val center: Point, val box: BoundingBox)

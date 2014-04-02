@@ -1,3 +1,11 @@
+// companion object for BoundingBox
+object BoundingBox {
+
+  def apply (topLeft: Point, bottomRight: Point) : BoundingBox =
+    new BoundingBox(topLeft, bottomRight)
+
+}
+
 // a bounding box is defined by two points or a point and dimensions
 class BoundingBox (val topLeft: Point, val bottomRight: Point) {
 
