@@ -1,3 +1,5 @@
+package imgdetect.util
+
 // companion object for BoundingBox
 object BoundingBox {
 
