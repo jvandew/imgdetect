@@ -5,7 +5,7 @@ scalac = fsc $(copts)
 .PHONY: clean test
 
 clean:
-	-rm *.class
+	@echo "test package not yet implemented"
 
 test:
-	echo "test package not yet implemented"
+	@echo "test package not yet implemented"

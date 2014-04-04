@@ -8,7 +8,6 @@ clean:
 	@-$(MAKE) clean -C test -s
 	@-$(MAKE) clean -C train -s
 	@-$(MAKE) clean -C util -s
-	-rm *.class
 
 cvtest: cvtools
 	@-$(MAKE) cvtest -C cvtest --no-print-directory
