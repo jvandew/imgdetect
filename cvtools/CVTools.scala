@@ -161,9 +161,13 @@ object CVTools {
   // it should also only be loaded once, which is why we synchronize here
   def loadLibrary : Unit = this.synchronized {
     if (!libraryLoaded) {
+
       // TODO(jacob) this may not work
-      // if not use -Djava.library.path=share/OpenCV/java at runtime
-      System.setProperty("java.library.path", "share/OpenCV/java")
+      //   if not use -Djava.library.path=share/OpenCV/java or similar at runtime
+      // IDEA: re-compile OpenCV libs with -Wl --export-dynamic options found
+      //   via random StackOverflow post
+      // System.setProperty("java.library.path", "share/OpenCV/java")
+
       System.loadLibrary(Core.NATIVE_LIBRARY_NAME)
       libraryLoaded = true
     }

@@ -1,3 +1,7 @@
+classpath = .:..:share/OpenCV/java/opencv-248.jar
+libpath = share/OpenCV/java
+ropts = -cp $(classpath) -Djava.library.path=$(libpath)
+
 .PHONY: all clean cvtest cvtools go run test train util
 
 all: util cvtools train test cvtest
@@ -15,10 +19,10 @@ cvtest: cvtools
 cvtools: util
 	@-$(MAKE) cvtools -C cvtools --no-print-directory
 
-go: cvtest run
+go: cvtest run-cvtest
 
-run:
-	@-$(MAKE) run -C cvtest --no-print-directory
+run-cvtest:
+	scala $(ropts) imgdetect.cvtest.CVTest
 
 test:
 	@-$(MAKE) test -C test --no-print-directory

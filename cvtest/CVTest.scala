@@ -10,6 +10,8 @@ object CVTest {
 
     CVTools.loadLibrary
 
+    // TODO(jacob) figure out how to get this path dynamically
+    // println(ClassLoader.getSystemResource("lena.png").getPath)   // crashes w/ NPE
     val img = Highgui.imread("resources/lena.png", Highgui.CV_LOAD_IMAGE_GRAYSCALE)
 
     var winSize = new Size(512, 512) // size of lena
