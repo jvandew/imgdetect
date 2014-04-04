@@ -24,28 +24,39 @@ object CVTools {
 
   /* Given an array of HOG descriptors and the parameters that generated them,
    * aggregates the descriptors in the given bounding box by cell, averaging across
-   * all blocks. Window sizes other than the image dimensions are currently ignored.
-   *
-   * Note: the given box should be in image cells as its units, not pixels
-   *
-   * TODO(jacob) implement multiple detection windows
+   * all blocks.
    */
   def aggregateHOGInBox (img: Mat) (box: BoundingBox) (descVals: Array[Float])
-                                                    (windowSize: Size, blockSize: Size,
-                                                     blockStride: Size, cellSize: Size,
-                                                     numBins: Int) : Array[Array[Array[Float]]] = {
+                        (winSize: Size, winStride: Size, blockSize: Size,
+                         blockStride: Size, cellSize: Size, numBins: Int)
+      : Array[Array[Array[Float]]] = {
 
-    val winSize = img.size    // TODO(jacob) delete this line once multiple windows are implemented
+    val imgSize = img.size
 
     // hopefully self-explanatory
-    val cellsInXDir = (winSize.width / cellSize.width).toInt
-    val cellsInYDir = (winSize.height / cellSize.height).toInt
+    val cellsInXDir = (imgSize.width / cellSize.width).toInt
+    val cellsInYDir = (imgSize.height / cellSize.height).toInt
+
     val cellsInBlockX = (blockSize.width / cellSize.width).toInt
     val cellsInBlockY = (blockSize.height / cellSize.height).toInt
-    val blocksInXDir = (winSize.width/blockStride.width - (blockSize.width-blockStride.width)
-                          / blockStride.width).toInt
-    val blocksInYDir = (winSize.height/blockStride.height - (blockSize.height-blockStride.height)
-                          / blockStride.height).toInt
+
+    val cellsInWinX = (winSize.width / cellSize.width).toInt
+    val cellsInWinY = (winSize.height / cellSize.height).toInt
+
+    val blocksInWinX = (winSize.width/blockStride.width - (blockSize.width-blockStride.width)
+                                                          / blockStride.width).toInt
+    val blocksInWinY = (winSize.height/blockStride.height - (blockSize.height-blockStride.height)
+                                                            / blockStride.height).toInt
+
+    // unlike blockStride, winStride can be 0
+    val winsInXDir = winStride.width match {
+      case 0 => 1
+      case w => (imgSize.width/w - (winSize.width - w)/w).toInt
+    }
+    val winsInYDir = winStride.height match {
+      case 0 => 1
+      case h => (imgSize.height/h - (winSize.height - h)/h).toInt
+    }
 
     if (box.bottomRight.x > cellsInXDir || box.bottomRight.y > cellsInYDir) {
       throw new IllegalArgumentException
@@ -58,22 +69,25 @@ object CVTools {
 
     // sum gradient strengths for each cell
     // TODO(jacob) if we're clever this can probably be done with a tabulate or similar
-    for (blockx <- 0 until blocksInXDir) {
-      for (blocky <- 0 until blocksInYDir) {
-        for(celly <- 0 until cellsInBlockY) {
-          for (cellx <- 0 until cellsInBlockX) {
+    for (winy <- 0 until winsInYDir) {
+      for (winx <- 0 until winsInXDir) {
+        for (blockx <- 0 until blocksInWinX) {
+          for (blocky <- 0 until blocksInWinY) {
+            for (celly <- 0 until cellsInBlockY) {
+              for (cellx <- 0 until cellsInBlockX) {
 
-            val (prevx, prevy) = ((blockx*blockStride.width / cellSize.width).toInt,
-                                  (blocky*blockStride.height / cellSize.height).toInt)
-            val (indx, indy) = (prevx + cellx, prevy + celly)
+                val (indx, indy) = (winx*cellsInWinX + blockx*cellsInBlockX + cellx,
+                                    winy*cellsInWinY + blocky*cellsInBlockY + celly)
 
-            for (bin <- 0 until numBins) {
-              gradientStrengths(indy)(indx)(bin) += descVals(descDataIdx)
-              descDataIdx += 1
+                for (bin <- 0 until numBins) {
+                  gradientStrengths(indy)(indx)(bin) += descVals(descDataIdx)
+                  descDataIdx += 1
+                }
+
+                cellUpdateCounter(indy)(indx) += 1
+
+              }
             }
-
-            cellUpdateCounter(indy)(indx) += 1
-
           }
         }
       }
@@ -99,35 +113,33 @@ object CVTools {
 
 
   /* Given an array of HOG descriptors and the parameters that generated them,
-   * aggregates the descriptors by cell, averaging across all blocks. Window
-   * sizes other than the image dimensions are currently ignored.
-   *
-   * TODO(jacob) implement multiple detection windows
+   * aggregates the descriptors by cell, averaging across all blocks.
    */
   def aggregateHOGInFullImage (img: Mat) (descVals: Array[Float])
-                                         (winSize: Size, blockSize: Size, blockStride: Size,
-                                          cellSize: Size, numBins: Int) : Array[Array[Array[Float]]] = {
+                              (winSize: Size, winStride: Size, blockSize: Size,
+                               blockStride: Size, cellSize: Size, numBins: Int)
+      : Array[Array[Array[Float]]] = {
 
     val imgSize = img.size
     val cellsInXDir = (imgSize.width / cellSize.width).toInt
     val cellsInYDir = (imgSize.height / cellSize.height).toInt
     val allCellsBox = BoundingBox(Point(0, 0), Point(cellsInXDir, cellsInYDir))
 
-    aggregateHOGInBox(img)(allCellsBox)(descVals)(winSize, blockSize, blockStride, cellSize, numBins)
+    aggregateHOGInBox(img)(allCellsBox)(descVals)(winSize, winStride, blockSize, blockStride, cellSize, numBins)
 
   }
 
 
   // compute a set of HOG descriptors for a given image and bounding box and visualize them via Swing
-  def computeAndDisplayHOGBox (img: Mat) (box: BoundingBox) (winSize: Size, blockSize: Size,
-                                                             blockStride: Size, cellSize: Size,
-                                                             numBins: Int)
+  def computeAndDisplayHOGBox (img: Mat) (box: BoundingBox) (winSize: Size, winStride: Size,
+                                                             blockSize: Size, blockStride: Size,
+                                                             cellSize: Size, numBins: Int)
                               (visScaler: Float) (windowTitle: String) : Unit = {
 
     val colorimg = new Mat
     Imgproc.cvtColor(img, colorimg, Imgproc.COLOR_GRAY2RGB)
 
-    val gradStrengths = computeHOGInBox(img)(box)(winSize, blockSize, blockStride, cellSize, numBins)
+    val gradStrengths = computeHOGInBox(img)(box)(winSize, winStride, blockSize, blockStride, cellSize, numBins)
     val hogimg = getHOGBoxVisual(colorimg)(box)(gradStrengths)(cellSize, numBins)(visScaler)
 
     val byteMat = new MatOfByte
@@ -143,9 +155,9 @@ object CVTools {
 
 
   // compute a set of HOG descriptors for a given image and visualize them via Swing
-  def computeAndDisplayHOGFull (img: Mat) (winSize: Size, blockSize: Size,
-                                          blockStride: Size, cellSize: Size,
-                                          numBins: Int)
+  def computeAndDisplayHOGFull (img: Mat) (winSize: Size, winStride: Size,
+                                           blockSize: Size, blockStride: Size,
+                                           cellSize: Size, numBins: Int)
                               (visScaler: Float) (windowTitle: String) : Unit = {
 
     val imgSize = img.size
@@ -153,7 +165,7 @@ object CVTools {
     val cellsInYDir = (imgSize.height / cellSize.height).toInt
     val allCellsBox = BoundingBox(Point(0, 0), Point(cellsInXDir, cellsInYDir))
 
-    computeAndDisplayHOGBox(img)(allCellsBox)(winSize, blockSize, blockStride, cellSize, numBins)(visScaler)(windowTitle)
+    computeAndDisplayHOGBox(img)(allCellsBox)(winSize, winStride, blockSize, blockStride, cellSize, numBins)(visScaler)(windowTitle)
 
   }
 
@@ -162,24 +174,18 @@ object CVTools {
    * If there are overlapping blocks (i.e. blockSize != blockStride) descriptor values
    * for each cell will be averaged across all blocks it is contained in.
    *
-   * Note 1: the given box should be in image cells as its units, not pixels
-   * Note 2: winSize is currently ignored as window sizes other than the image dimensions
-   *   are not currently supported
-   *
-   * TODO(jacob) implement multiple detection windows
+   * Note: the given box should be in image cells as its units, not pixels
    */
-  def computeHOGInBox (img: Mat) (box: BoundingBox) (windowSize: Size, blockSize: Size,
+  def computeHOGInBox (img: Mat) (box: BoundingBox) (winSize: Size, winStride: Size, blockSize: Size,
                                                      blockStride: Size, cellSize: Size,
                                                      numBins: Int) : Array[Array[Array[Float]]] = {
-
-    val winSize = img.size    // TODO(jacob) delete this line once multiple windows are implemented
 
     val hog = new HOGDescriptor(winSize, blockSize, blockStride, cellSize, numBins)
     val descVals = new MatOfFloat
     val locs = new MatOfPoint
-    hog.compute(img, descVals, new Size(0, 0), new Size(0, 0), locs)
+    hog.compute(img, descVals, winStride, new Size(0, 0), locs)
 
-    aggregateHOGInBox(img)(box)(descVals.toArray)(winSize, blockSize, blockStride, cellSize, numBins)
+    aggregateHOGInBox(img)(box)(descVals.toArray)(winSize, winStride, blockSize, blockStride, cellSize, numBins)
 
   }
 
@@ -187,13 +193,8 @@ object CVTools {
   /* Compute the per-cell HOG descriptors for the given image. If there are overlapping
    * blocks (i.e. blockSize != blockStride) descriptor values for each cell will be
    * averaged across all blocks it is contained in.
-   *
-   * Note: winSize is currently ignored as window sizes other than the image dimensions
-   *   are not currently supported
-   *
-   * TODO(jacob) implement multiple detection windows
    */
-  def computeHOGInFullImage (img: Mat) (winSize: Size, blockSize: Size,
+  def computeHOGInFullImage (img: Mat) (winSize: Size, winStride: Size, blockSize: Size,
                                         blockStride: Size, cellSize: Size,
                                         numBins: Int) : Array[Array[Array[Float]]] = {
 
@@ -202,7 +203,7 @@ object CVTools {
     val cellsInYDir = (imgSize.height / cellSize.height).toInt
     val allCellsBox = BoundingBox(Point(0, 0), Point(cellsInXDir, cellsInYDir))
 
-    computeHOGInBox(img)(allCellsBox)(winSize, blockSize, blockStride, cellSize, numBins)
+    computeHOGInBox(img)(allCellsBox)(winSize, winStride, blockSize, blockStride, cellSize, numBins)
 
   }
 
