@@ -117,16 +117,18 @@ object CVTools {
 
   }
 
-  // compute a set of HOG descriptors for a given image and visualize them via Swing
-  def computeAndDisplayHOG (img: Mat) (winSize: Size, blockSize: Size,
-                                       blockStride: Size, cellSize: Size,
-                                       numBins: Int) (visScaler: Float) (windowTitle: String) : Unit = {
+
+  // compute a set of HOG descriptors for a given image and bounding box and visualize them via Swing
+  def computeAndDisplayHOGBox (img: Mat) (box: BoundingBox) (winSize: Size, blockSize: Size,
+                                                             blockStride: Size, cellSize: Size,
+                                                             numBins: Int)
+                              (visScaler: Float) (windowTitle: String) : Unit = {
 
     val colorimg = new Mat
     Imgproc.cvtColor(img, colorimg, Imgproc.COLOR_GRAY2RGB)
 
-    val gradStrengths = computeHOGInFullImage(img)(winSize, blockSize, blockStride, cellSize, numBins)
-    val hogimg = getHOGFullVisual(colorimg)(gradStrengths)(cellSize, numBins)(visScaler)
+    val gradStrengths = computeHOGInBox(img)(box)(winSize, blockSize, blockStride, cellSize, numBins)
+    val hogimg = getHOGBoxVisual(colorimg)(box)(gradStrengths)(cellSize, numBins)(visScaler)
 
     val byteMat = new MatOfByte
     Highgui.imencode(".png", hogimg, byteMat)
@@ -136,6 +138,22 @@ object CVTools {
     val bufImg = ImageIO.read(in)
 
     displayBuffImage(bufImg)(windowTitle)
+
+  }
+
+
+  // compute a set of HOG descriptors for a given image and visualize them via Swing
+  def computeAndDisplayHOGFull (img: Mat) (winSize: Size, blockSize: Size,
+                                          blockStride: Size, cellSize: Size,
+                                          numBins: Int)
+                              (visScaler: Float) (windowTitle: String) : Unit = {
+
+    val imgSize = img.size
+    val cellsInXDir = (imgSize.width / cellSize.width).toInt
+    val cellsInYDir = (imgSize.height / cellSize.height).toInt
+    val allCellsBox = BoundingBox(Point(0, 0), Point(cellsInXDir, cellsInYDir))
+
+    computeAndDisplayHOGBox(img)(allCellsBox)(winSize, blockSize, blockStride, cellSize, numBins)(visScaler)(windowTitle)
 
   }
 

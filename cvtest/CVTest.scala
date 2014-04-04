@@ -1,6 +1,7 @@
 package imgdetect.cvtest
 
 import imgdetect.cvtools.CVTools
+import imgdetect.util.{BoundingBox, Point}
 
 object CVTest {
 
@@ -18,7 +19,11 @@ object CVTest {
     var cellSize = CVTools.makeSize(32, 32)
     var numBins = 9
 
-    CVTools.computeAndDisplayHOG(img)(winSize, blockSize, blockStride, cellSize, numBins)(1.2f)("bs = 32x32")
+    CVTools.computeAndDisplayHOGFull(img)(winSize, blockSize, blockStride, cellSize, numBins)(1.2f)("bs = 32x32")
+
+    val box = BoundingBox(Point(3, 4), Point(15, 10))
+
+    CVTools.computeAndDisplayHOGBox(img)(box)(winSize, blockSize, blockStride, cellSize, numBins)(1.2f)("bb: bs = 32x32")
   }
 
 }
