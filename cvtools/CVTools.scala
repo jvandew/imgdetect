@@ -11,6 +11,7 @@ import org.opencv.objdetect.HOGDescriptor
 import scala.math.{cos, sin, toRadians}
 
 // a static object containing useful tools for interfacing with OpenCV
+// the goal is to have all OpenCV interaction happen within the cvtools package
 object CVTools {
 
   // dynamic OpenCV library must be loaded prior to calling any other methods
@@ -157,6 +158,15 @@ object CVTools {
   }
 
 
+  // read in an image as grayscale
+  def imreadGrayscale (imagePath: String) : Mat =
+    Highgui.imread(imagePath, Highgui.CV_LOAD_IMAGE_GRAYSCALE)
+
+
+  // read in an image as greyscale (see what I did there? english is hard)
+  def imreadGreyscale (imagePath: String) : Mat = imreadGrayscale(imagePath)
+
+
   // dynamic OpenCV library must be loaded prior to calling any other methods
   // it should also only be loaded once, which is why we synchronize here
   def loadLibrary : Unit = this.synchronized {
@@ -172,5 +182,9 @@ object CVTools {
       libraryLoaded = true
     }
   }
+
+
+  // create a new OpenCV Size object and return it
+  def makeSize (width: Double, height: Double) : Size = new Size(width, height)
 
 }
