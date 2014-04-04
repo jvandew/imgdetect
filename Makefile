@@ -1,27 +1,30 @@
-classpath = .:share/OpenCV/java/opencv-248.jar
-libpath = share/OpenCV/java
-copts = -deprecation -optimise -cp $(classpath)
-ropts = -cp $(classpath) -Djava.library.path=share/OpenCV/java
-scalac = fsc $(copts)
+.PHONY: all clean cvtest cvtools go run test train util
 
-.PHONY: all clean go run test train util
-
-all: util train test
+all: util cvtools train test cvtest
 
 clean:
-	@-$(MAKE) clean -C util -s
+	@-$(MAKE) clean -C cvtest -s
+	@-$(MAKE) clean -C cvtools -s
+	@-$(MAKE) clean -C test -s
 	@-$(MAKE) clean -C train -s
+	@-$(MAKE) clean -C util -s
 	-rm *.class
 
-go: all run
+cvtest: cvtools
+	@-$(MAKE) cvtest -C cvtest --no-print-directory
+
+cvtools: util
+	@-$(MAKE) cvtools -C cvtools --no-print-directory
+
+go: cvtest run
 
 run:
-	scala $(ropts) CVTest
+	@-$(MAKE) run -C cvtest --no-print-directory
 
-test: CVTest.scala
-	$(scalac) CVTest.scala
+test:
+	@-$(MAKE) test -C test --no-print-directory
 
-train: util
+train: util cvtools
 	@-$(MAKE) train -C train --no-print-directory
 
 util:

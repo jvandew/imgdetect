@@ -1,3 +1,5 @@
+package imgdetect.cvtools
+
 import java.awt.image.BufferedImage
 import java.io.ByteArrayInputStream
 import javax.imageio.ImageIO
@@ -8,8 +10,14 @@ import org.opencv.imgproc.Imgproc
 import org.opencv.objdetect.HOGDescriptor
 import scala.math.{cos, sin, toRadians}
 
-object CVTest {
+// a static object containing useful tools for interfacing with OpenCV
+object CVTools {
 
+  // dynamic OpenCV library must be loaded prior to calling any other methods
+  // use CVTools.loadLibrary to accomplish this
+  var libraryLoaded = false
+
+  // compute a set of HOG descriptors for a given image and visualize them via Swing
   def computeAndDisplayHOG (img: Mat) (winSize: Size, blockSize: Size,
                                        blockStride: Size, cellSize: Size,
                                        numBins: Int) (visScaler: Float) (windowTitle: String) : Unit = {
@@ -51,6 +59,7 @@ object CVTest {
     frame.setVisible(true)
 
   }
+
 
   // Assistance with visualization algorithm found here:
   // http://www.juergenwiki.de/work/wiki/doku.php?id=public%3ahog_descriptor_computation_and_visualization
@@ -145,21 +154,19 @@ object CVTest {
     }
 
     img
-
   }
 
-  def main (args: Array[String]) = {
 
-    System.loadLibrary(Core.NATIVE_LIBRARY_NAME)
-
-    val img = Highgui.imread("resources/lena.png", Highgui.CV_LOAD_IMAGE_GRAYSCALE)
-
-    var winSize = new Size(512, 512) // size of lena
-    var blockSize = new Size(32, 32)
-    var blockStride = new Size(32, 32)
-    var cellSize = new Size(32, 32)
-    var numBins = 9
-
-    computeAndDisplayHOG(img)(winSize, blockSize, blockStride, cellSize, numBins)(1.2f)("bs = 32x32")
+  // dynamic OpenCV library must be loaded prior to calling any other methods
+  // it should also only be loaded once, which is why we synchronize here
+  def loadLibrary : Unit = this.synchronized {
+    if (!libraryLoaded) {
+      // TODO(jacob) this may not work
+      // if not use -Djava.library.path=share/OpenCV/java at runtime
+      System.setProperty("java.library.path", "share/OpenCV/java")
+      System.loadLibrary(Core.NATIVE_LIBRARY_NAME)
+      libraryLoaded = true
+    }
   }
+
 }
