@@ -211,7 +211,7 @@ object CVTools {
   // crop an image at the specified bounding box
   def cropImage (img: Mat, box: BoundingBox) : Mat = {
 
-    val rect = new Rect(box.x, box.y, box.width, box.height)
+    val rect = new Rect(box.topLeft.x, box.topLeft.y, box.width, box.height)
     new Mat(img, rect)
 
   }

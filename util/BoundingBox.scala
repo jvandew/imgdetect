@@ -6,6 +6,9 @@ object BoundingBox {
   def apply (topLeft: Point, bottomRight: Point) : BoundingBox =
     new BoundingBox(topLeft, bottomRight)
 
+  def apply (topLeft: Point, width: Int, height: Int) : BoundingBox =
+    new BoundingBox(topLeft, width, height)
+
 }
 
 // a bounding box is defined by two points or a point and dimensions

@@ -36,14 +36,7 @@ class DiscreteHOGCell (val numBins: Int, val numPartitions: Int, val gradients: 
 
 
   // piggyback off String hashing
-  override def hashCode : Int = {
-
-    var hashStr = numBins.toString + numPartitions
-    gradients.foreach(hashStr += _)
-
-    hashStr.hashCode
-
-  }
+  override def hashCode : Int = toStringMin.hashCode
 
 
   def setGradients (grads: Array[Int]) : Unit = {
@@ -60,5 +53,14 @@ class DiscreteHOGCell (val numBins: Int, val numPartitions: Int, val gradients: 
 
   override def toString : String =
     "DiscreteHOGCell: " + numBins + " bins, " + numPartitions + " bin partitions, gradients = " + gradients
+
+
+  // a minimal string representation of the cell
+  def toStringMin : String = {
+    var minStr = numBins.toString + numPartitions
+    gradients.foreach(minStr += _)
+
+    minStr
+  }
 
 }
