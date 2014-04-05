@@ -7,5 +7,10 @@ scalac = fsc $(copts)
 clean:
 	-rm *.class
 
-util: BoundingBox.scala PASCALAnnotation.scala PASCALObject.scala PASCALObjectLabel.scala PASCALSize.scala Point.scala Utils.scala
-	$(scalac) Utils.scala Point.scala BoundingBox.scala PASCALSize.scala PASCALObjectLabel.scala PASCALObject.scala PASCALAnnotation.scala
+util: ArrayDist.scala BoundingBox.scala DiscreteDistribution.scala HashMapDist.scala     \
+			PASCALAnnotation.scala PASCALObject.scala PASCALObjectLabel.scala PASCALSize.scala \
+			Point.scala Utils.scala
+	$(scalac) \
+		Utils.scala DiscreteDistribution.scala ArrayDist.scala HashMapDist.scala \
+		Point.scala BoundingBox.scala PASCALSize.scala PASCALObjectLabel.scala   \
+		PASCALObject.scala PASCALAnnotation.scala

@@ -5,7 +5,7 @@ import java.awt.image.BufferedImage
 import java.io.ByteArrayInputStream
 import javax.imageio.ImageIO
 import javax.swing.{ImageIcon, JFrame, JLabel, WindowConstants}
-import org.opencv.core.{Core, Mat, MatOfByte, MatOfFloat, MatOfPoint, Size, Scalar}
+import org.opencv.core.{Core, Mat, MatOfByte, MatOfFloat, MatOfPoint, Rect, Size, Scalar}
 import org.opencv.highgui.Highgui
 import org.opencv.imgproc.Imgproc
 import org.opencv.objdetect.HOGDescriptor
@@ -204,6 +204,15 @@ object CVTools {
     val allCellsBox = BoundingBox(Point(0, 0), Point(cellsInXDir, cellsInYDir))
 
     computeHOGInBox(img)(allCellsBox)(winSize, winStride, blockSize, blockStride, cellSize, numBins)
+
+  }
+
+
+  // crop an image at the specified bounding box
+  def cropImage (img: Mat, box: BoundingBox) : Mat = {
+
+    val rect = new Rect(box.x, box.y, box.width, box.height)
+    new Mat(img, rect)
 
   }
 
