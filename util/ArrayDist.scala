@@ -25,7 +25,7 @@ class ArrayDist[T] (computeIndex: T => Int, invertIndex: Int => T, maxIndex: Int
   def display : Unit = {
 
     val indexDist = dist.zipWithIndex
-    val sorted = indexDist.sortWith((ifreq1, ifreq2) => ifreq1._2 > ifreq2._2)
+    val sorted = indexDist.sortWith((ifreq1, ifreq2) => ifreq1._2 < ifreq2._2)
     sorted.foreach(ifreq => println(invertIndex(ifreq._1) + " : " + ifreq._2))
 
   }

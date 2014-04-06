@@ -24,6 +24,10 @@ go: cvtest run-cvtest
 run-cvtest:
 	scala $(ropts) imgdetect.cvtest.CVTest
 
+# to pass args do 'make run-train args="arg0 arg1..."'
+run-train:
+	scala $(ropts) imgdetect.train.TrainBayesSuper $(args)
+
 test:
 	@-$(MAKE) test -C test --no-print-directory
 

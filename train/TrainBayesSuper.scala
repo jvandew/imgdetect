@@ -62,8 +62,8 @@ object TrainBayesSuper {
 
         }
 
-        println("\nComputed " + dist.totalUnique + " unique descriptors:\n")
         dist.display
+        println("\nComputed " + dist.totalUnique + " unique descriptors:\n")
 
       }
 

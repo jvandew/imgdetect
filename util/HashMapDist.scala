@@ -38,7 +38,7 @@ class HashMapDist[T] extends DiscreteDistribution[T] {
   def display : Unit = {
 
     val keyDist = dist.toArray
-    val sorted = keyDist.sortWith((kfreq1, kfreq2) => kfreq1._2 > kfreq2._2)
+    val sorted = keyDist.sortWith((kfreq1, kfreq2) => kfreq1._2 < kfreq2._2)
     sorted.foreach(kfreq => println(kfreq._1 + " : " + kfreq._2))
 
   }
