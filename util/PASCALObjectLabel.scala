@@ -3,7 +3,9 @@ package imgdetect.util
 // ADT for PASCAL object types (granted right now we only have one type but someday...)
 sealed trait PASCALObjectLabel
 
-sealed trait PASPerson extends PASCALObjectLabel
+case object Negative extends PASCALObjectLabel
 
-case object PASPerson extends PASPerson
-case object UprightPerson extends PASPerson
+// hierarchical structure not represented to allow for easy hashing of labels
+case object PASPerson extends PASCALObjectLabel
+case object UprightPerson extends PASCALObjectLabel
+case object BikingPerson extends PASCALObjectLabel

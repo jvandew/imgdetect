@@ -14,9 +14,8 @@ object BoundingBox {
 // a bounding box is defined by two points or a point and dimensions
 class BoundingBox (val topLeft: Point, val bottomRight: Point) {
 
-  if (topLeft.x > bottomRight.x || topLeft.y > bottomRight.y) {
-    throw new IllegalArgumentException("Error: This box is inverted and has negative dimensions")
-  }
+  require(topLeft.x <= bottomRight.x && topLeft.y <= bottomRight.y,
+          "Error: This box is inverted and has negative dimensions")
 
   val width = bottomRight.x - topLeft.x
   val height = bottomRight.y - topLeft.y

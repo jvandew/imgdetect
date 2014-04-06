@@ -21,11 +21,11 @@ cvtools: util
 
 go: cvtest run-cvtest
 
-run-cvtest:
+run-cvtest: cvtest
 	scala $(ropts) imgdetect.cvtest.CVTest
 
 # to pass args do 'make run-train args="arg0 arg1..."'
-run-train:
+run-train: train
 	scala $(ropts) imgdetect.train.TrainBayesSuper $(args)
 
 test:

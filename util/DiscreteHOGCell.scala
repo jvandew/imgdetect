@@ -18,9 +18,8 @@ object DiscreteHOGCell {
  */
 class DiscreteHOGCell (val numBins: Int, val numPartitions: Int, val gradients: Array[Int]) {
 
-  if (gradients.length != numBins || !gradients.forall(_ < numPartitions)) {
-    throw new IllegalArgumentException("Gradient array does not match given parameters")
-  }
+  require(gradients.length == numBins && gradients.forall(_ < numPartitions),
+          "Gradient array does not match given parameters")
 
   def this (numBins: Int, numPartitions: Int) = this(numBins, numPartitions, new Array[Int](numBins))
 
@@ -41,12 +40,9 @@ class DiscreteHOGCell (val numBins: Int, val numPartitions: Int, val gradients: 
 
   def setGradients (grads: Array[Int]) : Unit = {
 
-    if (grads.length != numBins || !grads.forall(_ < numPartitions)) {
-      throw new IllegalArgumentException("Gradient array does not match given parameters")
-    }
-    else {
-      grads.copyToArray(gradients)
-    }
+    assume(grads.length == numBins && grads.forall(_ < numPartitions),
+           "Gradient array does not match given parameters")
+    grads.copyToArray(gradients)
 
   }
 
@@ -59,7 +55,7 @@ class DiscreteHOGCell (val numBins: Int, val numPartitions: Int, val gradients: 
 
   // a more verbose string representation of the cell
   def toStringVerbose : String = {
-    val grads = "Array(" + gradients.reduce((g1, g2) => g1 + ", " + g2) + ")"
+    val grads = "Array(" + gradients.map(_.toString).reduce((g1, g2) => g1 + ", " + g2) + ")"
     "DiscreteHOGCell: " + numBins + " bins, " + numPartitions + " bin partitions, gradients = " + grads
   }
 

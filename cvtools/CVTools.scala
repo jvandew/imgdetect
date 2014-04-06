@@ -58,10 +58,8 @@ object CVTools {
       case h => (imgSize.height/h - (winSize.height - h)/h).toInt
     }
 
-    if (box.bottomRight.x > cellsInXDir || box.bottomRight.y > cellsInYDir) {
-      throw new IllegalArgumentException
-          ("Box does not fit in image; maybe you forgot to use cells instead of pixels?")
-    }
+    require(box.bottomRight.x <= cellsInXDir && box.bottomRight.y <= cellsInYDir,
+            "Box does not fit in image; maybe you forgot to use cells instead of pixels?")
 
     val gradientStrengths = Array.ofDim[Float](cellsInYDir, cellsInXDir, numBins)
     val cellUpdateCounter = Array.ofDim[Int](cellsInYDir, cellsInXDir)

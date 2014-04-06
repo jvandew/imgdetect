@@ -78,15 +78,14 @@ object PASCALAnnotation {
     val pascalLabels = labelArrayElementRegex.findAllMatchIn(labelArray).toList
     val matches = objectRegex.findAllMatchIn(objDetails).toList
 
-    // sanity check
-    if (matches.length != pascalLabels.length || matches.length != numObjsStr.toInt) {
-      throw new IllegalArgumentException("Wrong number of labels for annotation objects")
-    }
+    assume(matches.length == pascalLabels.length && matches.length == numObjsStr.toInt,
+           "Wrong number of labels for annotation objects")
 
     val size = PASCALSize(sizexStr.toInt, sizeyStr.toInt, sizecStr.toInt)
 
     val pascalObjs = pascalLabels.zip(matches).map { labelStr_mat =>
 
+      // TODO(jacob) this doesn't work for some reason
       // val List(objNumStr, labelStr_mat._1, specLabelStr, centerxStr, centeryStr,
       //          topLeftxStr, topLeftyStr, botRightxStr, botRightyStr) = labelStr_mat._2.subgroups
       val fields = labelStr_mat._2.subgroups

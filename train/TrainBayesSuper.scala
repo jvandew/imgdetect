@@ -4,6 +4,7 @@ import imgdetect.cvtools.CVTools
 import imgdetect.util.{BoundingBox, DiscreteHOGCell, HashMapDist, PASCALAnnotation, Point, Utils}
 import java.io.File
 import org.opencv.core.{Mat, Size}
+import scala.math.exp
 
 // Train a supervised Bayesian detector
 object TrainBayesSuper {
@@ -46,7 +47,7 @@ object TrainBayesSuper {
           counter += 1
           val path = imgFile.getPath
 
-          println("handling image " + counter + ": " + path)
+          print("handling image " + counter + ": " + path)
 
           val img = CVTools.imreadGreyscale(path)
 
