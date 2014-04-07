@@ -65,16 +65,17 @@ object TestBayesSuper {
   def testNegative (images: Array[File], detector: BayesHOGDetector) (numBins: Int, numParts: Int)
       : (Int, Int) = {
 
-    var counter = 0
+    var imgCounter = 0
+    var winCounter = 0
     var tn = 0
     var fp = 0
 
     images.foreach { imgFile =>
 
-      counter += 1
+      imgCounter += 1
       val path = imgFile.getPath
 
-      println("handling negative training image " + counter + ": " + path)
+      println("handling negative training image " + imgCounter + ": " + path)
 
       val img = CVTools.imreadGreyscale(path)
 
@@ -92,12 +93,13 @@ object TestBayesSuper {
           case _::_ => fp += 1
           case _ => throw new Exception("life fail")
         }
-
       }
+
+      winCounter += discreteHOGs.length
 
     }
 
-    println("\nOut of " + counter + " images, " + tn + " true negatives and " + fp + " false positives")
+    println("\nOut of " + winCounter + " windows, " + tn + " true negatives and " + fp + " false positives")
 
     (tn, fp)
 
