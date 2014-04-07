@@ -22,6 +22,16 @@ class HashMapDist[T] extends DiscreteDistribution[T] {
     totalCount += 1
   }
 
+  def addWordMultiple (word: T, num: Int) : Unit = {
+
+    dist.get(word) match {
+      case None => dist(word) = num
+      case Some(num) => dist(word) += num
+    }
+
+    totalCount += num
+  }
+
   def addWords (words: Array[T]) : Unit = {
 
     words.foreach { word =>
@@ -32,6 +42,18 @@ class HashMapDist[T] extends DiscreteDistribution[T] {
     }
 
     totalCount += words.length
+  }
+
+  def addWordsMultiple (words: Array[T], num: Int) : Unit = {
+
+    words.foreach { word =>
+      dist.get(word) match {
+        case None => dist(word) = num
+        case Some(num) => dist(word) += num
+      }
+    }
+
+    totalCount += words.length * num
   }
 
   // print out a visual representation of this distribution

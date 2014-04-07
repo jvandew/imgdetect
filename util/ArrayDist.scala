@@ -16,9 +16,19 @@ class ArrayDist[T] (computeIndex: T => Int, invertIndex: Int => T, maxIndex: Int
     totalCount += 1
   }
 
+  def addWordMultiple (word: T, num: Int) : Unit = {
+    dist(computeIndex(word)) += num
+    totalCount += num
+  }
+
   def addWords (words: Array[T]) : Unit = {
     words.foreach(word => dist(computeIndex(word)) += 1)
     totalCount += words.length
+  }
+
+  def addWordsMultiple (words: Array[T], num: Int) : Unit = {
+    words.foreach(word => dist(computeIndex(word)) += num)
+    totalCount += words.length * num
   }
 
   // print out a visual representation of this distribution

@@ -1,7 +1,7 @@
 package imgdetect.util
 
 // trait for a generic probabilitity distribution
-trait Distribution[T] {
+trait Distribution[T] extends Serializable {
 
   def conjugateProb (words: Array[T]) : Double
   def display : Unit

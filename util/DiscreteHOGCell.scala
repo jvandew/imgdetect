@@ -16,7 +16,8 @@ object DiscreteHOGCell {
  * numPartitions: the number of bins in each gradient bin. The total number
  * of possible unique DiscreteHOGCells will be [num partitions]^[num gradient bins]
  */
-class DiscreteHOGCell (val numBins: Int, val numPartitions: Int, val gradients: Array[Int]) {
+class DiscreteHOGCell (val numBins: Int, val numPartitions: Int, val gradients: Array[Int])
+  extends Serializable {
 
   require(gradients.length == numBins && gradients.forall(_ < numPartitions),
           "Gradient array does not match given parameters")
