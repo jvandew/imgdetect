@@ -29,7 +29,7 @@ class BayesHOGDetector (dists: List[(PASCALObjectLabel, DiscreteDistribution[Dis
     val margLikelihood = propMap.values.reduce(_ + _)
     val probMap = propMap.map(lp => (lp._1, lp._2 / margLikelihood))
 
-    probMap.toList
+    probMap.toArray.sortWith((lp1, lp2) => lp1._2 > lp2._2).toList
 
   }
 
@@ -42,7 +42,7 @@ class BayesHOGDetector (dists: List[(PASCALObjectLabel, DiscreteDistribution[Dis
     val logMargLikelihood = log(logPropMap.values.reduce(exp(_) + exp(_)))
     val logProbMap = logPropMap.map(lp => (lp._1, lp._2 - logMargLikelihood))
 
-    logProbMap.toList
+    logProbMap.toArray.sortWith((lp1, lp2) => lp1._2 > lp2._2).toList
 
   }
 

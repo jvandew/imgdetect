@@ -1,0 +1,136 @@
+package imgdetect.test
+
+import imgdetect.cvtools.CVTools
+import imgdetect.util.{BayesHOGDetector, BoundingBox, DiscreteHOGCell,
+                       PASCALObjectLabel, PASPerson, Point, Negative}
+import java.io.{File, FileInputStream, ObjectInputStream}
+import scala.math.exp
+
+// Test a supervised Bayesian detector
+object TestBayesSuper {
+
+  private val winSize = CVTools.makeSize(64, 128)
+  private val winStride = CVTools.makeSize(0, 0)
+  private val negWinStride = CVTools.makeSize(8, 8)
+  private val blockSize = CVTools.makeSize(16, 16)
+  private val blockStride = CVTools.makeSize(16, 16)
+  private val cellSize = CVTools.makeSize(8, 8)
+
+
+  // helper function to test positive examples; returns the number of true positives and false negatives
+  def testPositive (images: Array[File], label: PASCALObjectLabel, detector: BayesHOGDetector) (numBins: Int, numParts: Int)
+      : (Int, Int) = {
+
+    var counter = 0
+    var tp = 0
+    var fn = 0
+
+    images.foreach { imgFile =>
+
+      counter += 1
+      val path = imgFile.getPath
+
+      println("handling positive training image " + counter + ": " + path)
+
+      val img = CVTools.imreadGreyscale(path)
+
+      // normalized test images are padded by 3 pixels on each side
+      val cropBox = BoundingBox(Point(3, 3), 64, 128)
+      val cropped = CVTools.cropImage(img, cropBox)
+
+      // compute HOG descriptors
+      val descs = CVTools.computeHOGInFullImage(cropped)(winSize, winStride, blockSize, blockStride, cellSize, numBins)
+      val discreteHOGs = descs.flatten.map(DiscreteHOGCell.discretizeHOGCell(_, numParts))
+
+      val results = detector.detectLog(discreteHOGs)
+      results.foreach(lp => println("\t" + lp._1 + ": " + exp(lp._2)))
+
+      results match {
+        case (`label`, _)::_ => tp += 1
+        case (Negative, _)::_ => fn += 1
+        case _ => throw new Exception("life fail")
+      }
+
+    }
+
+    println("\nOut of " + counter + " images, " + tp + " true positives and " + fn + " false negatives")
+
+    (tp, fn)
+
+  }
+
+
+  // Helper function to test negative examples; returns the number of true negatives and false positives.
+  // If an image window scores higher than Negative on any label this is treated as a false positive.
+  def testNegative (images: Array[File], detector: BayesHOGDetector) (numBins: Int, numParts: Int)
+      : (Int, Int) = {
+
+    var counter = 0
+    var tn = 0
+    var fp = 0
+
+    images.foreach { imgFile =>
+
+      counter += 1
+      val path = imgFile.getPath
+
+      println("handling negative training image " + counter + ": " + path)
+
+      val img = CVTools.imreadGreyscale(path)
+
+      // compute HOG descriptors
+      val descs = CVTools.computeHOGWindows(img)(winSize, negWinStride, blockSize, blockStride, cellSize, numBins)
+      val discreteHOGs = descs.map(_.flatten.map(DiscreteHOGCell.discretizeHOGCell(_, numParts)))
+
+      discreteHOGs.foreach { hogs =>
+
+        val results = detector.detectLog(hogs)
+        results.foreach(lp => println("\t" + lp._1 + ": " + exp(lp._2)))
+
+        results match {
+          case (Negative, _)::_ => tn += 1
+          case _::_ => fp += 1
+          case _ => throw new Exception("life fail")
+        }
+
+      }
+
+    }
+
+    println("\nOut of " + counter + " images, " + tn + " true negatives and " + fp + " false positives")
+
+    (tn, fp)
+
+  }
+
+
+  /* Test a detector. Arguments:
+   * 0: file path for saving the learned detector
+   * 1: INRIA dataset location
+   * 2: number of bins to use in HOG descriptor
+   * 3: number of partitions to use for each gradient bin. this is used to take
+   *    the space of HOG cell descriptors from a "continuous" to a discrete space
+   */
+  def main (args: Array[String]) : Unit = {
+
+    CVTools.loadLibrary
+
+    val detectorFile = new File(args(0))
+    val inriaHome = args(1)
+    val numBins = args(2).toInt
+    val numParts = args(3).toInt
+
+    val detectorIn = new ObjectInputStream(new FileInputStream(detectorFile))
+    val detector = detectorIn.readObject.asInstanceOf[BayesHOGDetector]
+
+    val posFolder = new File(inriaHome, "test_64x128_H96/pos")
+    val negFolder = new File(inriaHome, "test_64x128_H96/neg")
+    val posImages = posFolder.listFiles
+    val negImages = negFolder.listFiles
+
+    testPositive(posImages, PASPerson, detector)(numBins, numParts)
+    testNegative(negImages, detector)(numBins, numParts)
+
+  }
+
+}

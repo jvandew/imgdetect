@@ -18,6 +18,10 @@ cvtools: util
 
 go: tests run-tests
 
+# to pass args do 'make run-test args="arg0 arg1..."'
+run-test: test
+	scala $(ropts) imgdetect.test.TestBayesSuper $(args)
+
 run-tests: tests
 	scala $(ropts) imgdetect.tests.CVTest
 
