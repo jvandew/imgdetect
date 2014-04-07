@@ -3,10 +3,10 @@ classpath = .:../..:../share/OpenCV/java/opencv-248.jar
 copts = -deprecation -optimise -cp $(classpath) -d ../..
 scalac = fsc $(copts)
 
-.PHONY: clean cvtest
+.PHONY: clean tests
 
 clean:
 	-rm *.class
 
-cvtest: CVTest.scala
+tests: CVTest.scala
 	$(scalac) CVTest.scala

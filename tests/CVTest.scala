@@ -1,4 +1,4 @@
-package imgdetect.cvtest
+package imgdetect.tests
 
 import imgdetect.cvtools.CVTools
 import imgdetect.util.{BoundingBox, Point}
