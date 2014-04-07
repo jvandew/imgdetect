@@ -12,6 +12,7 @@ object TrainBayesSuper {
 
   private val winSize = CVTools.makeSize(64, 128)
   private val winStride = CVTools.makeSize(0, 0)
+  private val negWinStride = CVTools.makeSize(8, 8)
   private val blockSize = CVTools.makeSize(16, 16)
   private val blockStride = CVTools.makeSize(16, 16)
   private val cellSize = CVTools.makeSize(8, 8)
@@ -40,6 +41,35 @@ object TrainBayesSuper {
       // compute HOG descriptors
       val descs = CVTools.computeHOGInFullImage(cropped)(winSize, winStride, blockSize, blockStride, cellSize, numBins)
       val discreteHOGs = descs.flatten.map(DiscreteHOGCell.discretizeHOGCell(_, numParts))
+
+      dist.addWords(discreteHOGs)
+
+    }
+
+    dist
+
+  }
+
+
+  // helper function to mine an individual distribution from a set of negative images
+  def trainNegative (images: Array[File]) (numBins: Int, numParts: Int)
+      : HashMapDist[DiscreteHOGCell] = {
+
+    var counter = 0
+    val dist = new HashMapDist[DiscreteHOGCell]
+
+    images.foreach { imgFile =>
+
+      counter += 1
+      val path = imgFile.getPath
+
+      println("mining negative training image " + counter + ": " + path)
+
+      val img = CVTools.imreadGreyscale(path)
+
+      // compute HOG descriptors
+      val descs = CVTools.computeHOGWindows(img)(winSize, negWinStride, blockSize, blockStride, cellSize, numBins)
+      val discreteHOGs = descs.flatten.flatten.map(DiscreteHOGCell.discretizeHOGCell(_, numParts))
 
       dist.addWords(discreteHOGs)
 
@@ -84,12 +114,12 @@ object TrainBayesSuper {
         val posDist = trainLabel(posImages, PASPerson)(numBins, numParts)
         posDist.display
         println("\nComputed " + posDist.totalUnique + " unique descriptors:\n")
-        prior.addWordMultiple(PASPerson, posImages.length)
+        prior.addWordMultiple(PASPerson, posDist.totalUnique)
 
-        val negDist = trainLabel(negImages, Negative)(numBins, numParts)
+        val negDist = trainNegative(negImages)(numBins, numParts)
         negDist.display
         println("\nComputed " + negDist.totalUnique + " unique descriptors:\n")
-        prior.addWordMultiple(Negative, negImages.length)
+        prior.addWordMultiple(Negative, negDist.totalUnique)
 
         val detector = new BayesHOGDetector(List(PASPerson, Negative), List(posDist, negDist), prior)
         detectorOut.writeObject(detector)

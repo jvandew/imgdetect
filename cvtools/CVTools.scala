@@ -22,6 +22,93 @@ object CVTools {
   // use CVTools.loadLibrary to accomplish this
   var libraryLoaded = false
 
+
+  /* Given an array of HOG descriptors and the parameters that generated them,
+   * aggregates the descriptors by cell in each detection window, averaging across
+   * all blocks.
+   */
+  def aggregateHOGWindows (img: Mat) (descVals: Array[Float])
+                           (winSize: Size, winStride: Size, blockSize: Size,
+                            blockStride: Size, cellSize: Size, numBins: Int)
+      : Array[Array[Array[Array[Float]]]] = {
+
+    val imgSize = img.size
+
+    // hopefully self-explanatory
+    val cellsInBlockX = (blockSize.width / cellSize.width).toInt
+    val cellsInBlockY = (blockSize.height / cellSize.height).toInt
+
+    val cellsInWinX = (winSize.width / cellSize.width).toInt
+    val cellsInWinY = (winSize.height / cellSize.height).toInt
+
+    val blocksInWinX = (winSize.width/blockStride.width - (blockSize.width-blockStride.width)
+                                                          / blockStride.width).toInt
+    val blocksInWinY = (winSize.height/blockStride.height - (blockSize.height-blockStride.height)
+                                                            / blockStride.height).toInt
+
+    // unlike blockStride, winStride can be 0
+    val winsInXDir = winStride.width match {
+      case 0 => 1
+      case w => (imgSize.width/w - (winSize.width - w)/w).toInt
+    }
+    val winsInYDir = winStride.height match {
+      case 0 => 1
+      case h => (imgSize.height/h - (winSize.height - h)/h).toInt
+    }
+
+    val gradientStrengths = Array.ofDim[Float](winsInXDir*winsInYDir, cellsInWinY, cellsInWinX, numBins)
+    val cellUpdateCounter = Array.ofDim[Int](winsInXDir*winsInYDir, cellsInWinY, cellsInWinX)
+    var descDataIdx = 0
+
+    // sum gradient strengths for each cell
+    // TODO(jacob) if we're clever this can probably be done with a tabulate or similar
+    for (winy <- 0 until winsInYDir) {
+      for (winx <- 0 until winsInXDir) {
+
+        val windex = winy*winsInXDir + winx
+
+        for (blockx <- 0 until blocksInWinX) {
+          for (blocky <- 0 until blocksInWinY) {
+            for (celly <- 0 until cellsInBlockY) {
+              for (cellx <- 0 until cellsInBlockX) {
+
+                val (indx, indy) = (blockx*cellsInBlockX + cellx, blocky*cellsInBlockY + celly)
+
+                // seven nested loops! a new record!
+                for (bin <- 0 until numBins) {
+                  gradientStrengths(windex)(indy)(indx)(bin) += descVals(descDataIdx)
+                  descDataIdx += 1
+                }
+
+                cellUpdateCounter(windex)(indy)(indx) += 1
+
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // average gradient strengths
+    for (windex <- 0 until winsInXDir*winsInYDir) {
+      for (celly <- 0 until cellsInWinY) {
+        for (cellx <- 0 until cellsInWinX) {
+
+          val numUpdates = cellUpdateCounter(windex)(celly)(cellx)
+
+          for (bin <- 0 until numBins) {
+            gradientStrengths(windex)(celly)(cellx)(bin) /= numUpdates
+          }
+
+        }
+      }
+    }
+
+    gradientStrengths
+
+  }
+
+
   /* Given an array of HOG descriptors and the parameters that generated them,
    * aggregates the descriptors in the given bounding box by cell, averaging across
    * all blocks.
@@ -77,6 +164,7 @@ object CVTools {
                 val (indx, indy) = (winx*cellsInWinX + blockx*cellsInBlockX + cellx,
                                     winy*cellsInWinY + blocky*cellsInBlockY + celly)
 
+                // seven nested loops! a new record!
                 for (bin <- 0 until numBins) {
                   gradientStrengths(indy)(indx)(bin) += descVals(descDataIdx)
                   descDataIdx += 1
@@ -175,8 +263,8 @@ object CVTools {
    * Note: the given box should be in image cells as its units, not pixels
    */
   def computeHOGInBox (img: Mat) (box: BoundingBox) (winSize: Size, winStride: Size, blockSize: Size,
-                                                     blockStride: Size, cellSize: Size,
-                                                     numBins: Int) : Array[Array[Array[Float]]] = {
+                                                     blockStride: Size, cellSize: Size, numBins: Int)
+      : Array[Array[Array[Float]]] = {
 
     val hog = new HOGDescriptor(winSize, blockSize, blockStride, cellSize, numBins)
     val descVals = new MatOfFloat
@@ -193,8 +281,8 @@ object CVTools {
    * averaged across all blocks it is contained in.
    */
   def computeHOGInFullImage (img: Mat) (winSize: Size, winStride: Size, blockSize: Size,
-                                        blockStride: Size, cellSize: Size,
-                                        numBins: Int) : Array[Array[Array[Float]]] = {
+                                        blockStride: Size, cellSize: Size, numBins: Int)
+      : Array[Array[Array[Float]]] = {
 
     val imgSize = img.size
     val cellsInXDir = (imgSize.width / cellSize.width).toInt
@@ -202,6 +290,24 @@ object CVTools {
     val allCellsBox = BoundingBox(Point(0, 0), Point(cellsInXDir, cellsInYDir))
 
     computeHOGInBox(img)(allCellsBox)(winSize, winStride, blockSize, blockStride, cellSize, numBins)
+
+  }
+
+
+  /* Compute the per-cell HOG descriptors for the given image over multiple windows.
+   * If there are overlapping blocks (i.e. blockSize != blockStride) descriptor values
+   * for each cell will be averaged across all blocks it is contained in.
+   */
+  def computeHOGWindows (img: Mat) (winSize: Size, winStride: Size, blockSize: Size,
+                                    blockStride: Size, cellSize: Size, numBins: Int)
+      : Array[Array[Array[Array[Float]]]] = {
+
+    val hog = new HOGDescriptor(winSize, blockSize, blockStride, cellSize, numBins)
+    val descVals = new MatOfFloat
+    val locs = new MatOfPoint
+    hog.compute(img, descVals, winStride, new Size(0, 0), locs)
+
+    aggregateHOGWindows(img)(descVals.toArray)(winSize, winStride, blockSize, blockStride, cellSize, numBins)
 
   }
 

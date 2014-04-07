@@ -1,6 +1,6 @@
 classpath = .:..:share/OpenCV/java/opencv-248.jar
 libpath = share/OpenCV/java
-ropts = -cp $(classpath) -Djava.library.path=$(libpath)
+ropts = -cp $(classpath) -Djava.library.path=$(libpath) -J-Xmx4G
 
 .PHONY: all clean cvtools go run test tests train util
 
