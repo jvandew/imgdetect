@@ -1,11 +1,13 @@
 package imgdetect.train
 
 import imgdetect.cvtools.CVTools
-import imgdetect.util.{BayesHOGDetector, BoundingBox, DiscreteHOGCell, HashMapDist, Negative,
-                       PASCALAnnotation, PASCALObjectLabel, PASPerson, Point, Utils}
+import imgdetect.util.{BayesHOGDetector, BoundingBox, DirichletHashMapDist, DiscreteHOGCell,
+                       HashMapDist, Negative, PASCALAnnotation, PASCALObjectLabel, PASPerson,
+                       Point, Utils}
 import java.io.{File, FileOutputStream, ObjectOutputStream}
 import org.opencv.core.{Mat, Size}
-import scala.math.exp
+import scala.collection.parallel.ThreadPoolTaskSupport
+import scala.math.{exp, pow}
 
 // Train a supervised Bayesian detector
 object TrainBayesSuper {
@@ -20,17 +22,16 @@ object TrainBayesSuper {
 
   // helper function to build an individual distribution for a set of images
   def trainLabel (images: Array[File], label: PASCALObjectLabel) (numBins: Int, numParts: Int)
-      : HashMapDist[DiscreteHOGCell] = {
+      : (DirichletHashMapDist[DiscreteHOGCell], Int) = {
 
-    var counter = 0
-    val dist = new HashMapDist[DiscreteHOGCell]
+    var counter = 1
+    val dist = new DirichletHashMapDist[DiscreteHOGCell](pow(numParts, numBins).toLong)
 
-    images.foreach { imgFile =>
+    images.par.foreach { imgFile =>
 
-      counter += 1
       val path = imgFile.getPath
 
-      println("handling " + label + " training image " + counter + ": " + path)
+      println("handling " + label + " training image " + counter + " of " + images.length + ":\n\t" + path)
 
       val img = CVTools.imreadGreyscale(path)
 
@@ -42,28 +43,32 @@ object TrainBayesSuper {
       val descs = CVTools.computeHOGInFullImage(cropped)(winSize, winStride, blockSize, blockStride, cellSize, numBins)
       val discreteHOGs = descs.flatten.map(DiscreteHOGCell.discretizeHOGCell(_, numParts))
 
-      dist.addWords(discreteHOGs)
+      dist.synchronized {
+        counter += 1
+        dist.addWordsMultiple(discreteHOGs, 100)
+      }
 
     }
 
-    dist
+    // one window per image
+    (dist, counter)
 
   }
 
 
   // helper function to mine an individual distribution from a set of negative images
   def trainNegative (images: Array[File]) (numBins: Int, numParts: Int)
-      : HashMapDist[DiscreteHOGCell] = {
+      : (DirichletHashMapDist[DiscreteHOGCell], Int) = {
 
-    var counter = 0
-    val dist = new HashMapDist[DiscreteHOGCell]
+    var counter = 1
+    var winCounter = 0
+    val dist = new DirichletHashMapDist[DiscreteHOGCell](pow(numParts, numBins).toLong)
 
-    images.foreach { imgFile =>
+    images.par.foreach { imgFile =>
 
-      counter += 1
       val path = imgFile.getPath
 
-      println("mining negative training image " + counter + ": " + path)
+      println("mining negative training image " + counter + " of " + images.length + ":\n\t" + path)
 
       val img = CVTools.imreadGreyscale(path)
 
@@ -71,11 +76,15 @@ object TrainBayesSuper {
       val descs = CVTools.computeHOGWindows(img)(winSize, negWinStride, blockSize, blockStride, cellSize, numBins)
       val discreteHOGs = descs.flatten.flatten.map(DiscreteHOGCell.discretizeHOGCell(_, numParts))
 
-      dist.addWords(discreteHOGs)
+      dist.synchronized {
+        counter += 1
+        winCounter += descs.length
+        dist.addWords(discreteHOGs)
+      }
 
     }
 
-    dist
+    (dist, winCounter)
 
   }
 
@@ -111,15 +120,15 @@ object TrainBayesSuper {
         val negImages = negFolder.listFiles
         val prior = new HashMapDist[PASCALObjectLabel]
 
-        val posDist = trainLabel(posImages, PASPerson)(numBins, numParts)
+        val (posDist, numPos) = trainLabel(posImages, PASPerson)(numBins, numParts)
         posDist.display
-        println("\nComputed " + posDist.totalUnique + " unique descriptors:\n")
-        prior.addWordMultiple(PASPerson, posDist.totalUnique)
+        prior.addWordMultiple(PASPerson, numPos)
 
-        val negDist = trainNegative(negImages)(numBins, numParts)
+        val (negDist, numNeg) = trainNegative(negImages)(numBins, numParts)
         negDist.display
-        println("\nComputed " + negDist.totalUnique + " unique descriptors:\n")
-        prior.addWordMultiple(Negative, negDist.totalUnique)
+        prior.addWordMultiple(Negative, numNeg)
+
+        prior.display
 
         val detector = new BayesHOGDetector(List(PASPerson, Negative), List(posDist, negDist), prior)
         detectorOut.writeObject(detector)
@@ -130,7 +139,7 @@ object TrainBayesSuper {
 
         val annotations = PASCALAnnotation.parseAnnotationList(inriaHome, "Train/annotations.lst")
 
-        println("parse successful?")
+        println("not yet implemented, but parse successful?")
 
       }
 

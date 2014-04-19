@@ -1,4 +1,4 @@
-classpath = .:..:share/OpenCV/java/opencv-248.jar
+classpath = .:..:share/OpenCV/java/opencv-248.jar:lib/commons-math3-3.2.jar
 libpath = share/OpenCV/java
 ropts = -cp $(classpath) -Djava.library.path=$(libpath) -J-Xmx4G
 

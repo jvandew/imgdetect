@@ -9,7 +9,7 @@ abstract class DiscreteDistribution[T] extends Distribution[T] {
   def addWordsMultiple (words: Array[T], num: Int) : Unit
   def numContained (word: T) : Int
   def totalSize: Long
-  def totalUnique: Int
+  def totalUnique: Long
 
   def conjugateProb (words: Array[T]) : Double = words.map(prob(_)).reduce(_ * _)
   def logConjugateProb (words: Array[T]) : Double = words.map(logProb(_)).reduce(_ + _)

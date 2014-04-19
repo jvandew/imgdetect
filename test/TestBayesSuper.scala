@@ -21,16 +21,15 @@ object TestBayesSuper {
   def testPositive (images: Array[File], label: PASCALObjectLabel, detector: BayesHOGDetector) (numBins: Int, numParts: Int)
       : (Int, Int) = {
 
-    var counter = 0
+    var imgCounter = 1
     var tp = 0
     var fn = 0
 
     images.foreach { imgFile =>
 
-      counter += 1
       val path = imgFile.getPath
 
-      println("handling positive training image " + counter + ": " + path)
+      println("handling positive test image " + imgCounter + " of " + images.length + ":\n\t" + path)
 
       val img = CVTools.imreadGreyscale(path)
 
@@ -45,15 +44,21 @@ object TestBayesSuper {
       val results = detector.detectLog(discreteHOGs)
       results.foreach(lp => println("\t" + lp._1 + ": " + exp(lp._2)))
 
-      results match {
-        case (`label`, _)::_ => tp += 1
-        case (Negative, _)::_ => fn += 1
-        case _ => throw new Exception("life fail")
+      this.synchronized {
+
+        imgCounter += 1
+
+        results match {
+          case (`label`, _)::_ => tp += 1
+          case (Negative, _)::_ => fn += 1
+          case _ => throw new Exception("life fail")
+        }
+
       }
 
     }
 
-    println("\nOut of " + counter + " images, " + tp + " true positives and " + fn + " false negatives")
+    println("\nOut of " + imgCounter + " images, " + tp + " true positives and " + fn + " false negatives")
 
     (tp, fn)
 
@@ -65,17 +70,15 @@ object TestBayesSuper {
   def testNegative (images: Array[File], detector: BayesHOGDetector) (numBins: Int, numParts: Int)
       : (Int, Int) = {
 
-    var imgCounter = 0
-    var winCounter = 0
+    var imgCounter = 1
     var tn = 0
     var fp = 0
 
     images.foreach { imgFile =>
 
-      imgCounter += 1
       val path = imgFile.getPath
 
-      println("handling negative training image " + imgCounter + ": " + path)
+      println("handling negative test image " + imgCounter + " of " + images.length + ":\n\t" + path)
 
       val img = CVTools.imreadGreyscale(path)
 
@@ -83,23 +86,28 @@ object TestBayesSuper {
       val descs = CVTools.computeHOGWindows(img)(winSize, negWinStride, blockSize, blockStride, cellSize, numBins)
       val discreteHOGs = descs.map(_.flatten.map(DiscreteHOGCell.discretizeHOGCell(_, numParts)))
 
+      var tnWins = 0
+      var fpWins = 0
+
       discreteHOGs.foreach { hogs =>
-
-        val results = detector.detectLog(hogs)
-        results.foreach(lp => println("\t" + lp._1 + ": " + exp(lp._2)))
-
-        results match {
-          case (Negative, _)::_ => tn += 1
-          case _::_ => fp += 1
+        detector.detectLog(hogs) match {
+          case (Negative, _)::_ => tnWins += 1
+          case _::_ => fpWins += 1
           case _ => throw new Exception("life fail")
         }
       }
 
-      winCounter += discreteHOGs.length
+      println("True Negatives: " + tnWins + "\nFalse Positives: " + fpWins)
+
+      this.synchronized {
+        imgCounter += 1
+        tn += tnWins
+        fp += fpWins
+      }
 
     }
 
-    println("\nOut of " + winCounter + " windows, " + tn + " true negatives and " + fp + " false positives")
+    println("\nOut of " + (tn + fp) + " windows, " + tn + " true negatives and " + fp + " false positives")
 
     (tn, fp)
 

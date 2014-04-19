@@ -1,4 +1,4 @@
-classpath = .:../..
+classpath = .:../..:../lib/commons-math3-3.2.jar
 copts = -deprecation -optimise -cp $(classpath) -d ../..
 scalac = fsc $(copts)
 
@@ -11,6 +11,7 @@ util: ArrayDist.scala              \
 			BayesHOGDetector.scala       \
 			BayesianDetector.scala       \
 			BoundingBox.scala            \
+			DirichletHashMapDist.scala   \
 			DiscreteDistribution.scala   \
 			DiscreteHOGCell.scala        \
 			Distribution.scala           \
@@ -28,6 +29,7 @@ util: ArrayDist.scala              \
 		DiscreteDistribution.scala     \
 		ArrayDist.scala                \
 		HashMapDist.scala              \
+		DirichletHashMapDist.scala     \
 		Point.scala                    \
 		BoundingBox.scala              \
 		PASCALSize.scala               \

@@ -48,6 +48,6 @@ class ArrayDist[T] (computeIndex: T => Int, invertIndex: Int => T, maxIndex: Int
 
   def totalSize: Long = totalCount
 
-  def totalUnique: Int = dist.count(_ != 0)
+  def totalUnique: Long = dist.count(_ != 0)
 
 }

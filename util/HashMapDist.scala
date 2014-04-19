@@ -74,6 +74,6 @@ class HashMapDist[T] extends DiscreteDistribution[T] {
 
   def totalSize: Long = totalCount
 
-  def totalUnique: Int = dist.size
+  def totalUnique: Long = dist.size
 
 }
