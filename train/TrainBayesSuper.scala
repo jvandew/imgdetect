@@ -76,10 +76,10 @@ object TrainBayesSuper {
       val descs = CVTools.computeHOGWindows(img)(winSize, negWinStride, blockSize, blockStride, cellSize, numBins)
       val discreteHOGs = descs.flatten.flatten.map(DiscreteHOGCell.discretizeHOGCell(_, numParts))
 
-      dist.synchronized {
+      dist.addWords(discreteHOGs)
+      this.synchronized {
         counter += 1
         winCounter += descs.length
-        dist.addWords(discreteHOGs)
       }
 
     }
@@ -128,6 +128,7 @@ object TrainBayesSuper {
         negDist.display
         prior.addWordMultiple(Negative, numNeg)
 
+        posDist.scale(numNeg.toDouble / numPos)
         prior.display
 
         val detector = new BayesHOGDetector(List(PASPerson, Negative), List(posDist, negDist), prior)

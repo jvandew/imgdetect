@@ -25,11 +25,9 @@ class BayesHOGDetector (dists: List[(PASCALObjectLabel, DiscreteDistribution[Dis
   // and the probability of that label given hogCells
   def detect (hogCells: Array[DiscreteHOGCell]) : List[(PASCALObjectLabel, Double)] = {
 
-    val propMap = distMap.map(ld => (ld._1, detectLabelProp(hogCells, ld._1)))
-    val margLikelihood = propMap.values.reduce(_ + _)
-    val probMap = propMap.map(lp => (lp._1, lp._2 / margLikelihood))
-
-    probMap.toArray.sortWith((lp1, lp2) => lp1._2 > lp2._2).toList
+    val props = detectProps(hogCells)
+    val margLikelihood = props.foldLeft(0.0)((agg, lp) => agg + lp._2)
+    props.map(lp => (lp._1, lp._2 / margLikelihood))
 
   }
 
@@ -38,32 +36,36 @@ class BayesHOGDetector (dists: List[(PASCALObjectLabel, DiscreteDistribution[Dis
   // and the log probability of that label given hogCells
   def detectLog (hogCells: Array[DiscreteHOGCell]) : List[(PASCALObjectLabel, Double)] = {
 
+    val logProps = detectLogProps(hogCells)
+    val logMargLikelihood = log(logProps.foldLeft(0.0)((agg, lp) => agg + exp(lp._2)))
+    logProps.map(lp => (lp._1, lp._2 - logMargLikelihood))
+
+  }
+
+
+  // Compute the log proportionality of each label for the given set of HOG
+  // descriptors. Returns a list of labels and the log proportionality of each.
+  def detectLogProps (hogCells: Array[DiscreteHOGCell]) : List[(PASCALObjectLabel, Double)] = {
+
     val logPropMap = distMap.map(ld => (ld._1, detectLabelLogProp(hogCells, ld._1)))
-    println(logPropMap)
-    println(logPropMap.values)
-    println(logPropMap.values.reduce(exp(_) + exp(_)))
-    println(logPropMap.values.reduce((p1, p2) => exp(p1) + exp(p2)))
-    val logMargLikelihood = log(logPropMap.values.reduce(exp(_) + exp(_)))
-    val logProbMap = logPropMap.map(lp => (lp._1, lp._2 - logMargLikelihood))
-
-    println("logMargLikelihood: " + logMargLikelihood)
-
-    logProbMap.toArray.sortWith((lp1, lp2) => lp1._2 > lp2._2).toList
+    logPropMap.toArray.sortWith((lp1, lp2) => lp1._2 > lp2._2).toList
 
   }
 
 
-  // returns thelog  proportionality of the given HOG cells for the given label
-  def detectLabelLogProp (hogCells: Array[DiscreteHOGCell], label: PASCALObjectLabel) : Double = {
+  // Compute the proportionality of each label for the given set of HOG
+  // descriptors. Returns a list of labels and the proportionality of each.
+  def detectProps (hogCells: Array[DiscreteHOGCell]) : List[(PASCALObjectLabel, Double)] = {
 
-    val lLikelihood = logLikelihood(hogCells, label)
-    val logPrior = prior.logProb(label)
-
-    println(label.toString + ":\n\tlogLikelihood: " + lLikelihood + "\n\tlogPrior: " + logPrior)
-
-    lLikelihood + logPrior
+    val propMap = distMap.map(ld => (ld._1, detectLabelProp(hogCells, ld._1)))
+    propMap.toArray.sortWith((lp1, lp2) => lp1._2 > lp2._2).toList
 
   }
+
+
+  // returns the log proportionality of the given HOG cells for the given label
+  def detectLabelLogProp (hogCells: Array[DiscreteHOGCell], label: PASCALObjectLabel) : Double =
+    logLikelihood(hogCells, label) + prior.logProb(label)
 
 
   // returns the proportionality of the given HOG cells for the given label

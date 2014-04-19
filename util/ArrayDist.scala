@@ -42,7 +42,7 @@ class ArrayDist[T] (computeIndex: T => Int, invertIndex: Int => T, maxIndex: Int
 
   def logProb (word: T) : Double = log(computeIndex(word)) - log(totalCount)
 
-  def numContained (word: T) : Int = dist(computeIndex(word))
+  def numContained (word: T) : Long = dist(computeIndex(word)).toLong
 
   def prob (word: T) : Double = dist(computeIndex(word)).toDouble / totalCount
 

@@ -68,7 +68,7 @@ class HashMapDist[T] extends DiscreteDistribution[T] {
   // TODO(jacob) become wise enough to know why this toDouble is required and not detected implicitly
   def logProb (word: T) : Double = log(dist.getOrElse(word, 0).toDouble) - log(totalCount)
 
-  def numContained (word: T) : Int = dist.getOrElse(word, 0)
+  def numContained (word: T) : Long = dist.getOrElse(word, 0).toLong
 
   def prob (word: T) : Double = dist.getOrElse(word, 0).toDouble / totalCount
 

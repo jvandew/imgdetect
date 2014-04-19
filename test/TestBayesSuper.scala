@@ -25,7 +25,7 @@ object TestBayesSuper {
     var tp = 0
     var fn = 0
 
-    images.foreach { imgFile =>
+    images.par.foreach { imgFile =>
 
       val path = imgFile.getPath
 
@@ -41,7 +41,7 @@ object TestBayesSuper {
       val descs = CVTools.computeHOGInFullImage(cropped)(winSize, winStride, blockSize, blockStride, cellSize, numBins)
       val discreteHOGs = descs.flatten.map(DiscreteHOGCell.discretizeHOGCell(_, numParts))
 
-      val results = detector.detectLog(discreteHOGs)
+      val results = detector.detectLogProps(discreteHOGs)
       results.foreach(lp => println("\t" + lp._1 + ": " + exp(lp._2)))
 
       this.synchronized {
@@ -58,7 +58,7 @@ object TestBayesSuper {
 
     }
 
-    println("\nOut of " + imgCounter + " images, " + tp + " true positives and " + fn + " false negatives")
+    println("\nOut of " + images.length + " images, " + tp + " true positives and " + fn + " false negatives")
 
     (tp, fn)
 
@@ -74,7 +74,7 @@ object TestBayesSuper {
     var tn = 0
     var fp = 0
 
-    images.foreach { imgFile =>
+    images.par.foreach { imgFile =>
 
       val path = imgFile.getPath
 
@@ -90,7 +90,7 @@ object TestBayesSuper {
       var fpWins = 0
 
       discreteHOGs.foreach { hogs =>
-        detector.detectLog(hogs) match {
+        detector.detectLogProps(hogs) match {
           case (Negative, _)::_ => tnWins += 1
           case _::_ => fpWins += 1
           case _ => throw new Exception("life fail")

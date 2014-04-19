@@ -7,7 +7,7 @@ import scala.math.log
 /* A Dirichlet distribution backed by a HashMap. */
 class DirichletHashMapDist[T] (numCategories: Long) extends DiscreteDistribution[T] {
 
-  private val dist = new HashMap[T, Int].withDefaultValue(1)
+  private val dist = new HashMap[T, Long].withDefaultValue(1L)
   private var totalCount = numCategories
 
   def addWord (word: T) : Unit = {
@@ -24,8 +24,8 @@ class DirichletHashMapDist[T] (numCategories: Long) extends DiscreteDistribution
 
   def addWords (words: Array[T]) : Unit = {
 
-    words.foreach(dist(_) += 1)
-    totalCount += words.length
+    words.foreach(w => dist.synchronized(dist(w) += 1))
+    this.synchronized(totalCount += words.length)
   }
 
   def addWordsMultiple (words: Array[T], num: Int) : Unit = {
@@ -70,10 +70,18 @@ class DirichletHashMapDist[T] (numCategories: Long) extends DiscreteDistribution
   def logProb (word: T) : Double =
     Gamma.logGamma(totalCount) + Gamma.logGamma(1 + dist(word)) - Gamma.logGamma(totalCount + 1)
 
-  def numContained (word: T) : Int = dist(word)
+  def numContained (word: T) : Long = dist(word)
 
   def prob (word: T) : Double =
     Gamma.gamma(totalCount) * Gamma.gamma(1 + dist(word)) / Gamma.gamma(totalCount + 1)
+
+  // scale Dirichlet parameters by a constant factor
+  def scale (factor: Double) : Unit = {
+
+    dist.foreach(kv => dist(kv._1) = (kv._2 * factor).toLong)
+    totalCount = dist.foldLeft(0L)((agg, kv) => agg + kv._2)
+
+  }
 
   def totalSize: Long = totalCount
 

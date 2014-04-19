@@ -7,7 +7,7 @@ abstract class DiscreteDistribution[T] extends Distribution[T] {
   def addWordMultiple (word: T, num: Int) : Unit
   def addWords (words: Array[T]) : Unit
   def addWordsMultiple (words: Array[T], num: Int) : Unit
-  def numContained (word: T) : Int
+  def numContained (word: T) : Long
   def totalSize: Long
   def totalUnique: Long
 
