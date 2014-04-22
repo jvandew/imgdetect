@@ -24,6 +24,7 @@ class DirichletHashMapDist[T] (numCategories: Long) extends DiscreteDistribution
 
   def addWords (words: Array[T]) : Unit = {
 
+    // TODO(jacob) make entire class thread-safe
     words.foreach(w => dist.synchronized(dist(w) += 1))
     this.synchronized(totalCount += words.length)
   }

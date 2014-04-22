@@ -1,7 +1,7 @@
 package imgdetect.test
 
 import imgdetect.cvtools.CVTools
-import imgdetect.util.{BayesHOGDetector, BoundingBox, DiscreteHOGCell,
+import imgdetect.util.{BayesianDetector, BoundingBox, DiscreteHOGCell,
                        PASCALObjectLabel, PASPerson, Point, Negative}
 import java.io.{File, FileInputStream, ObjectInputStream}
 import scala.math.exp
@@ -18,7 +18,8 @@ object TestBayesSuper {
 
 
   // helper function to test positive examples; returns the number of true positives and false negatives
-  def testPositive (images: Array[File], label: PASCALObjectLabel, detector: BayesHOGDetector) (numBins: Int, numParts: Int)
+  def testPositive (images: Array[File], label: PASCALObjectLabel, detector: BayesianDetector[DiscreteHOGCell])
+                   (numBins: Int, numParts: Int)
       : (Int, Int) = {
 
     var imgCounter = 1
@@ -67,7 +68,7 @@ object TestBayesSuper {
 
   // Helper function to test negative examples; returns the number of true negatives and false positives.
   // If an image window scores higher than Negative on any label this is treated as a false positive.
-  def testNegative (images: Array[File], detector: BayesHOGDetector) (numBins: Int, numParts: Int)
+  def testNegative (images: Array[File], detector: BayesianDetector[DiscreteHOGCell]) (numBins: Int, numParts: Int)
       : (Int, Int) = {
 
     var imgCounter = 1
@@ -131,7 +132,7 @@ object TestBayesSuper {
     val numParts = args(3).toInt
 
     val detectorIn = new ObjectInputStream(new FileInputStream(detectorFile))
-    val detector = detectorIn.readObject.asInstanceOf[BayesHOGDetector]
+    val detector = detectorIn.readObject.asInstanceOf[BayesianDetector[DiscreteHOGCell]]
 
     val posFolder = new File(inriaHome, "test_64x128_H96/pos")
     val negFolder = new File(inriaHome, "test_64x128_H96/neg")

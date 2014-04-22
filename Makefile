@@ -29,7 +29,7 @@ run-tests: tests
 run-train: train
 	scala $(ropts) imgdetect.train.TrainBayesSuper $(args)
 
-test:
+test: util cvtools
 	@-$(MAKE) test -C test --no-print-directory
 
 tests: cvtools
