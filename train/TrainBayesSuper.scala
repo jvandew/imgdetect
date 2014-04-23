@@ -48,11 +48,11 @@ object TrainBayesSuper {
       val descs = CVTools.computeHOGInFullImage(cropped)(winSize, winStride, blockSize, blockStride, cellSize, numBins)
       val discreteHOGs = descs.flatten.map(DiscreteHOGCell.discretizeHOGCell(_, numParts))
 
-      for (i <- 0 to discreteHOGs.length) {
+      for (i <- 0 until discreteHOGs.length) {
 
         val depDist = deps.getOrElse(discreteHOGs(i), genDefaultDist)
 
-        for (j <- 0 to discreteHOGs.length) {
+        for (j <- 0 until discreteHOGs.length) {
 
           if (i != j) {
             // shouldn't be an expensive synchronization - probability of another
@@ -111,12 +111,12 @@ object TrainBayesSuper {
       val discreteHOGs = descs.map(_.flatten.map(DiscreteHOGCell.discretizeHOGCell(_, numParts)))
 
       // iterate over each window
-      for (w <- 0 to discreteHOGs.length) {
-        for (i <- 0 to discreteHOGs(w).length) {
+      for (w <- 0 until discreteHOGs.length) {
+        for (i <- 0 until discreteHOGs(w).length) {
 
           val depDist = deps.getOrElse(discreteHOGs(w)(i), genDefaultDist)
 
-          for (j <- 0 to discreteHOGs(w).length) {
+          for (j <- 0 until discreteHOGs(w).length) {
 
             if (i != j) {
               // shouldn't be an expensive synchronization - probability of another

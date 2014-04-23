@@ -82,7 +82,7 @@ class DependentBayesHOGDetector (deps: List[(PASCALObjectLabel, Map[DiscreteHOGC
   def likelihood (hogCells: Array[DiscreteHOGCell], label: PASCALObjectLabel) : Double = {
 
     var like = distMap(label).prob(hogCells(0))
-    for (i <- 1 to hogCells.length) {
+    for (i <- 1 until hogCells.length) {
       like *= depMap(label)(hogCells(i-1)).prob(hogCells(i))
     }
 
@@ -94,7 +94,7 @@ class DependentBayesHOGDetector (deps: List[(PASCALObjectLabel, Map[DiscreteHOGC
   def logLikelihood (hogCells: Array[DiscreteHOGCell], label: PASCALObjectLabel) : Double = {
 
     var like = distMap(label).logProb(hogCells(0))
-    for (i <- 1 to hogCells.length) {
+    for (i <- 1 until hogCells.length) {
       like += depMap(label)(hogCells(i-1)).logProb(hogCells(i))
     }
 
