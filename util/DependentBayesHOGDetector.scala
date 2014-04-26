@@ -6,6 +6,8 @@ import scala.math.{exp, log}
 // A BayesianDetector composed of a set of learned dependent probability distributions
 // on HOG features. Constructor takes a list of labels and a hash map for each
 // mapping a HOG cell to a distribution of HOG cells conditional on this cell.
+// TODO(jacob) this was a pointless experiment, and actually mathematically incorrect;
+//             replace this eventually with a location aware detector
 class DependentBayesHOGDetector (deps: List[(PASCALObjectLabel, Map[DiscreteHOGCell, DiscreteDistribution[DiscreteHOGCell]])],
                         dists: List[(PASCALObjectLabel, DiscreteDistribution[DiscreteHOGCell])],
                         prior: DiscreteDistribution[PASCALObjectLabel])

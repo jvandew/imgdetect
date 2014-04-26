@@ -1,7 +1,7 @@
 package imgdetect.train
 
 import imgdetect.cvtools.CVTools
-import imgdetect.util.{BayesHOGDetector, BoundingBox, DependentBayesHOGDetector,
+import imgdetect.util.{BayesDiscHOGDetector, BoundingBox, DependentBayesHOGDetector,
                        DirichletHashMapDist, DiscreteHOGCell, HashMapDist, Negative,
                        PASCALAnnotation, PASCALObjectLabel, PASPerson, Point, Utils}
 import java.io.{File, FileOutputStream, ObjectOutputStream}
@@ -267,9 +267,10 @@ object TrainBayesSuper {
             posDist.scale(numNeg.toDouble / numPos)
             prior.display
 
-            new BayesHOGDetector(List(PASPerson, Negative), List(posDist, negDist), prior)
+            new BayesDiscHOGDetector(List(PASPerson, Negative), List(posDist, negDist), prior)
           }
 
+          // note: pointless experiment
           case "-dep" => {
 
             val (posDeps, posDist, numPos) = trainDepLabel(posImages, PASPerson)(numBins, numParts)

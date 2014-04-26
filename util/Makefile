@@ -8,9 +8,10 @@ clean:
 	-rm *.class
 
 util: ArrayDist.scala              	  \
-			BayesHOGDetector.scala       	  \
+			BayesDiscHOGDetector.scala      \
 			BayesianDetector.scala       	  \
 			BoundingBox.scala            	  \
+			ContinuousHOGCell.scala         \
 			DependentBayesHOGDetector.scala \
 			DirichletHashMapDist.scala   	  \
 			DiscreteDistribution.scala   	  \
@@ -25,6 +26,7 @@ util: ArrayDist.scala              	  \
 			Utils.scala
 	$(scalac)                         \
 		Utils.scala                     \
+		ContinuousHOGCell.scala         \
 		DiscreteHOGCell.scala           \
 		Distribution.scala              \
 		DiscreteDistribution.scala      \
@@ -39,5 +41,5 @@ util: ArrayDist.scala              	  \
 		PASCALAnnotation.scala          \
 		Detector.scala                  \
 		BayesianDetector.scala          \
-		BayesHOGDetector.scala          \
+		BayesDiscHOGDetector.scala      \
 		DependentBayesHOGDetector.scala

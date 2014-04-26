@@ -5,8 +5,8 @@ import scala.math.{exp, log}
 
 // A BayesianDetector composed of a set of learned probability distributions
 // on HOG features. Constructor takes a list of distributions and their labels.
-class BayesHOGDetector (dists: List[(PASCALObjectLabel, DiscreteDistribution[DiscreteHOGCell])],
-                           prior: DiscreteDistribution[PASCALObjectLabel])
+class BayesDiscHOGDetector (dists: List[(PASCALObjectLabel, DiscreteDistribution[DiscreteHOGCell])],
+                            prior: DiscreteDistribution[PASCALObjectLabel])
   extends BayesianDetector[DiscreteHOGCell] {
 
   private val distMap = new HashMap[PASCALObjectLabel, DiscreteDistribution[DiscreteHOGCell]] ++ dists
