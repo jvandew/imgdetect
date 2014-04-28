@@ -11,3 +11,9 @@ project/plugins/project/
 
 # Scala-IDE specific
 .scala_dependencies
+
+# various local folders I use
+detectors/
+resources/INRIAPerson/
+test-output/
+train-output/
