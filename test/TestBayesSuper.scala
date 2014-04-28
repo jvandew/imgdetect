@@ -2,8 +2,8 @@ package imgdetect.test
 
 import imgdetect.cvtools.CVTools
 import imgdetect.util.{BayesContHOGDetector, BayesDiscHOGDetector, BayesianDetector,
-                       BoundingBox, ContinuousHOGCell, DiscreteHOGCell, PASCALObjectLabel,
-                       PASPerson, Point, Negative}
+                       BoundingBox, ContinuousHOGCell, DiscreteHOGCell, MultivarNormalDist,
+                       PASCALObjectLabel, PASPerson, Point, Negative}
 import java.io.{File, FileInputStream, ObjectInputStream}
 import scala.math.exp
 
@@ -21,7 +21,7 @@ object TestBayesSuper {
   // helper function to test positive examples; returns the number of true positives and false negatives
   def testContPositive (images: Array[File])
                        (label: PASCALObjectLabel)
-                       (detector: BayesianDetector[ContinuousHOGCell])
+                       (detector: BayesianDetector[Array[Double]])
                        (numBins: Int)
       : (Int, Int) = {
 
@@ -43,9 +43,8 @@ object TestBayesSuper {
 
       // compute HOG descriptors
       val descs = CVTools.computeHOGInFullImage(cropped)(winSize, winStride, blockSize, blockStride, cellSize, numBins)
-      val hogs = descs.flatten.map(new ContinuousHOGCell(_))
 
-      val results = detector.detectLogProps(hogs)
+      val results = detector.detectLogProps(descs.flatten.map(_.map(_.toDouble)))
       results.foreach(lp => println("\t" + lp._1 + ": " + exp(lp._2)))
 
       this.synchronized {
@@ -72,7 +71,7 @@ object TestBayesSuper {
   // Helper function to test negative examples; returns the number of true negatives and false positives.
   // If an image window scores higher than Negative on any label this is treated as a false positive.
   def testContNegative (images: Array[File])
-                       (detector: BayesianDetector[ContinuousHOGCell])
+                       (detector: BayesianDetector[Array[Double]])
                        (numBins: Int)
       : (Int, Int) = {
 
@@ -90,13 +89,13 @@ object TestBayesSuper {
 
       // compute HOG descriptors
       val descs = CVTools.computeHOGWindows(img)(winSize, negWinStride, blockSize, blockStride, cellSize, numBins)
-      val imgHOGs = descs.map(_.flatten.map(new ContinuousHOGCell(_)))
+      val imgHOGs = descs.map(_.flatten)
 
       var tnWins = 0
       var fpWins = 0
 
       imgHOGs.foreach { hogs =>
-        detector.detectLogProps(hogs) match {
+        detector.detectLogProps(hogs.map(_.map(_.toDouble))) match {
           case (Negative, _)::_ => tnWins += 1
           case _::_ => fpWins += 1
           case _ => throw new Exception("life fail")

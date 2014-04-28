@@ -5,10 +5,11 @@ import imgdetect.util.{BayesContHOGDetector, BayesDiscHOGDetector, BoundingBox,
                        ContinuousHOGCell, DirichletHashMapDist, DiscreteHOGCell,
                        HashMapDist, MultivarNormalDist, Negative, PASCALAnnotation,
                        PASCALObjectLabel, PASPerson, Point, Utils}
-import java.io.{File, FileOutputStream, ObjectOutputStream}
+import java.io.{File, FileInputStream, FileOutputStream, ObjectInputStream, ObjectOutputStream}
 import org.opencv.core.{Mat, Size}
 import scala.collection.immutable.{HashMap, Map}
 import scala.math.{exp, pow}
+import scala.util.Random
 
 // Train a supervised Bayesian detector
 object TrainBayesSuper {
@@ -23,10 +24,11 @@ object TrainBayesSuper {
 
   // helper function to build an individual distribution for a set of images
   def trainContLabel (images: Array[File], label: PASCALObjectLabel) (numBins: Int)
-      : (MultivarNormalDist[ContinuousHOGCell], Int) = {
+      : (MultivarNormalDist, Int) = {
 
     var counter = 0
 
+    // positive images can fit in-memory
     val hogs = images.par.map { imgFile =>
 
       val path = imgFile.getPath
@@ -41,26 +43,26 @@ object TrainBayesSuper {
 
       // compute HOG descriptors
       val descs = CVTools.computeHOGInFullImage(cropped)(winSize, winStride, blockSize, blockStride, cellSize, numBins)
-      val imgHogs = descs.flatten.map(new ContinuousHOGCell(_))
 
       this.synchronized {
         counter += 1
       }
 
-      imgHogs
+      descs.flatten.map(_.map(_.toDouble))
 
     }
 
     // one window per image
-    (new MultivarNormalDist[ContinuousHOGCell](hogs.toArray.flatten), counter)
+    (MultivarNormalDist(hogs.toArray.flatten), counter)
 
   }
 
 
   // helper function to mine an individual distribution from a set of negative images
-  def trainContNegative (images: Array[File]) (numBins: Int)
-      : (MultivarNormalDist[ContinuousHOGCell], Int) = {
+  def trainContNegative (images: Array[File]) (numBins: Int) (propData: Double)
+      : (MultivarNormalDist, Int) = {
 
+    val rand = new Random
     var counter = 1
     var winCounter = 0
 
@@ -68,24 +70,28 @@ object TrainBayesSuper {
 
       val path = imgFile.getPath
 
-      println("mining negative training image " + counter + " of " + images.length + ":\n\t" + path)
+      println("mining negative training image " + counter + " of " + images.length + ":\n\t" + path )
 
       val img = CVTools.imreadGreyscale(path)
 
       // compute HOG descriptors
       val descs = CVTools.computeHOGWindows(img)(winSize, negWinStride, blockSize, blockStride, cellSize, numBins)
-      val imgHOGs = descs.flatten.flatten.map(new ContinuousHOGCell(_))
 
       this.synchronized {
         counter += 1
         winCounter += descs.length
       }
 
-      imgHOGs
+      // holy functions Batman
+      // flatten to an array of HOGs, take our subset, then convert HOGs to Doubles
+      descs.flatten.flatten.filter(_ => rand.nextDouble < propData).map(_.map(_.toDouble))
 
     }
 
-    (new MultivarNormalDist[ContinuousHOGCell](hogs.toArray.flatten), winCounter)
+    val flatHOGs = hogs.toArray.flatten
+    println("Building a distribution on " + flatHOGs.length + " HOG cells")
+
+    (MultivarNormalDist(flatHOGs), winCounter)
 
   }
 
@@ -295,9 +301,12 @@ object TrainBayesSuper {
    * 2: INRIA dataset location
    * 3: file path for saving the learned detector
    * 4: number of bins to use in HOG descriptor
-   * 5: number of partitions to use for each gradient bin. this is used to take
-   *    the space of HOG cell descriptors from a "continuous" to a discrete space
-   *    (discrete detector only)
+   * 5: -disc case: number of partitions to use for each gradient bin. this is used
+   *    to take the space of HOG cell descriptors from a "continuous" to a discrete
+   *    space
+   *    -cont case: the proportion of negative training data to use. as the dataset
+   *    can be too large to fit in memory (necessary for computing covariances) this
+   *    provides a method for making training possible
    *
    *    Note the total number of discetized HOG descriptors will be
    *    [num partitions]^[num gradient bins]
@@ -324,10 +333,12 @@ object TrainBayesSuper {
         val detector = args(1) match {
           case "-cont" => {
 
+            val propData = args(5).toDouble
+
             val (posDist, numPos) = trainContLabel(posImages, PASPerson)(numBins)
             prior.addWordMultiple(PASPerson, numPos)
 
-            val (negDist, numNeg) = trainContNegative(negImages)(numBins)
+            val (negDist, numNeg) = trainContNegative(negImages)(numBins)(propData)
             prior.addWordMultiple(Negative, numNeg)
 
             prior.display

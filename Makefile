@@ -1,7 +1,7 @@
 classpath = .:..:share/OpenCV/java/opencv-248.jar:lib/commons-math3-3.2.jar
 copts = -Xlint -Xfatal-warnings -Ywarn-all -deprecation -optimise
 libpath = share/OpenCV/java
-ropts = -cp $(classpath) -Djava.library.path=$(libpath) -J-Xmx4G
+ropts = -cp $(classpath) -Djava.library.path=$(libpath) -J-Xmx8G
 scalac = fsc $(copts)
 
 export scalac

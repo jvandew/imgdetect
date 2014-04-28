@@ -4,19 +4,34 @@ import org.apache.commons.math3.distribution.MultivariateNormalDistribution
 import org.apache.commons.math3.stat.correlation.Covariance
 import scala.math.log
 
-/* A wrapper class around the Apache Commons MultivariateNormalDistribution.
- * This takes a function for implicit conversion from the word type to an array
- * representing a vector in multi-dimensional space.
- */
-class MultivarNormalDist[T <: VectorType] (data: Array[T])
-  extends ContinuousDistribution[T] {
+/* Companion object to make our lives simpler */
+object MultivarNormalDist {
 
-  private val doubleData = data.map(_.toVector)
-  private val means = doubleData.map(ds => ds.fold(0.0)(_ + _) / ds.length)
-  private val covarMatrix = new Covariance(doubleData).getCovarianceMatrix.getData
+  def apply (data: Array[Array[Double]]) : MultivarNormalDist = {
 
-  private val dist = new MultivariateNormalDistribution(means, covarMatrix)
+    // this is an inefficient operation cache-wise
+    val sums = data.reduce((v1, v2) => Array.tabulate(v1.length)(i => v1(i) + v2(i)))
+    val means = sums.map(_ / data.length)
+    val covarMatrix = new Covariance(data).getCovarianceMatrix.getData
 
+    new MultivarNormalDist(means, covarMatrix)
+
+  }
+
+  def apply (data: Array[Array[Float]]) : MultivarNormalDist =
+    apply(data.map(_.map(_.toDouble)))
+
+}
+
+/* A wrapper class around the Apache Commons MultivariateNormalDistribution. */
+class MultivarNormalDist (means: Array[Double], covarMatrix: Array[Array[Double]])
+  extends ContinuousDistribution[Array[Double]] {
+
+  /* This value is lazy by necessity, as MultivariateNormalDistribution is not Serializable
+   * for some ungodly reason. This also means that MultivarNormalDists MUST NOT be used
+   * to compute probabilities prior to serialization (display should be ok).
+   */
+  private lazy val dist = new MultivariateNormalDistribution(means, covarMatrix)
 
   // print out a visual representation of this distribution
   def display () : Unit = {
@@ -24,8 +39,8 @@ class MultivarNormalDist[T <: VectorType] (data: Array[T])
     println("Covariance Matrix:\n" + covarMatrix.mkString("\t|", "\t", "|").mkString("\n"))
   }
 
-  def logProb (word: T) : Double = log(dist.density(word.toVector))
+  def logProb (vector: Array[Double]) : Double = log(dist.density(vector))
 
-  def prob (word: T) : Double = dist.density(word.toVector)
+  def prob (vector: Array[Double]) : Double = dist.density(vector)
 
 }
