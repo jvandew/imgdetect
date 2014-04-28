@@ -10,7 +10,7 @@ trait Distribution[T] extends Serializable {
   /* Assumes independence of words.
    * Subclasses should override these methods if this is not the case.
    */
-  def conjugateProb (words: Array[T]) : Double = words.map(prob(_)).reduce(_ * _)
-  def logConjugateProb (words: Array[T]) : Double = words.map(logProb(_)).reduce(_ + _)
+  def conjugateProb (words: Array[T]) : Double = words.map(prob(_)).fold(1.0)(_ * _)
+  def logConjugateProb (words: Array[T]) : Double = words.map(logProb(_)).fold(0.0)(_ + _)
 
 }
