@@ -1,6 +1,10 @@
 classpath = .:..:share/OpenCV/java/opencv-248.jar:lib/commons-math3-3.2.jar
+copts = -Xlint -Xfatal-warnings -Ywarn-all -deprecation -optimise
 libpath = share/OpenCV/java
 ropts = -cp $(classpath) -Djava.library.path=$(libpath) -J-Xmx4G
+scalac = fsc $(copts)
+
+export scalac
 
 .PHONY: all clean cvtools go run test tests train util
 

@@ -3,7 +3,7 @@ package imgdetect.util
 // trait for a generic probabilitity distribution
 trait Distribution[T] extends Serializable {
 
-  def display : Unit
+  def display () : Unit
   def logProb (word: T) : Double
   def prob (word: T) : Double
 

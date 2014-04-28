@@ -411,7 +411,7 @@ object CVTools {
 
   // dynamic OpenCV library must be loaded prior to calling any other methods
   // it should also only be loaded once, which is why we synchronize here
-  def loadLibrary : Unit = this.synchronized {
+  def loadLibrary () : Unit = this.synchronized {
     if (!libraryLoaded) {
 
       // TODO(jacob) this may not work

@@ -1,9 +1,10 @@
 package imgdetect.train
 
 import imgdetect.cvtools.CVTools
-import imgdetect.util.{BayesDiscHOGDetector, BoundingBox, DependentBayesHOGDetector,
-                       DirichletHashMapDist, DiscreteHOGCell, HashMapDist, Negative,
-                       PASCALAnnotation, PASCALObjectLabel, PASPerson, Point, Utils}
+import imgdetect.util.{BayesContHOGDetector, BayesDiscHOGDetector, BoundingBox,
+                       DependentBayesHOGDetector, DirichletHashMapDist, DiscreteHOGCell,
+                       HashMapDist, MultivarNormalDist, Negative, PASCALAnnotation,
+                       PASCALObjectLabel, PASPerson, Point, Utils}
 import java.io.{File, FileOutputStream, ObjectOutputStream}
 import org.opencv.core.{Mat, Size}
 import scala.collection.immutable.{HashMap, Map}

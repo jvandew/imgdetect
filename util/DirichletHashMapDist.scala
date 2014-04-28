@@ -47,7 +47,7 @@ class DirichletHashMapDist[T] (numCategories: Long) extends DiscreteDistribution
   }
 
   // print out a visual representation of this distribution
-  def display : Unit = {
+  def display () : Unit = {
 
     val keyDist = dist.toArray
     val sorted = keyDist.sortWith((kfreq1, kfreq2) => kfreq1._2 < kfreq2._2)

@@ -1,6 +1,5 @@
 classpath = .:../..:../lib/commons-math3-3.2.jar
-copts = -deprecation -optimise -cp $(classpath) -d ../..
-scalac = fsc $(copts)
+scalac += -cp $(classpath) -d ../..
 
 .PHONY: clean util
 

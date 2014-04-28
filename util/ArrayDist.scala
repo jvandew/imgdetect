@@ -32,7 +32,7 @@ class ArrayDist[T] (computeIndex: T => Int, invertIndex: Int => T, maxIndex: Int
   }
 
   // print out a visual representation of this distribution
-  def display : Unit = {
+  def display () : Unit = {
 
     val indexDist = dist.zipWithIndex
     val sorted = indexDist.sortWith((ifreq1, ifreq2) => ifreq1._2 < ifreq2._2)

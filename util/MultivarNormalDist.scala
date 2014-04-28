@@ -19,7 +19,7 @@ class MultivarNormalDist[T <: VectorType] (data: Array[T])
 
 
   // print out a visual representation of this distribution
-  def display : Unit = {
+  def display () : Unit = {
     println("Mean: " + means.mkString("(", ", ", ")"))
     println("Covariance Matrix:\n" + covarMatrix.mkString("\t|", "\t", "|").mkString("\n"))
   }
