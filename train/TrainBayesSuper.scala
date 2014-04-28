@@ -2,9 +2,9 @@ package imgdetect.train
 
 import imgdetect.cvtools.CVTools
 import imgdetect.util.{BayesContHOGDetector, BayesDiscHOGDetector, BoundingBox,
-                       ContinuousHOGCell, DirichletHashMapDist, DiscreteHOGCell,
-                       HashMapDist, MultivarNormalDist, Negative, PASCALAnnotation,
-                       PASCALObjectLabel, PASPerson, Point, Utils}
+                       DirichletHashMapDist, DiscreteHOGCell, HashMapDist,
+                       MultivarNormalDist, Negative, PASCALAnnotation, PASCALObjectLabel,
+                       PASPerson, Point, Utils}
 import java.io.{File, FileInputStream, FileOutputStream, ObjectInputStream, ObjectOutputStream}
 import org.opencv.core.{Mat, Size}
 import scala.collection.immutable.{HashMap, Map}
@@ -92,136 +92,6 @@ object TrainBayesSuper {
     println("Building a distribution on " + flatHOGs.length + " HOG cells")
 
     (MultivarNormalDist(flatHOGs), winCounter)
-
-  }
-
-
-  // helper function to build a set of dependent distributions for a set of images
-  def trainDepLabel (images: Array[File], label: PASCALObjectLabel) (numBins: Int, numParts: Int)
-      : (Map[DiscreteHOGCell, DirichletHashMapDist[DiscreteHOGCell]],
-         DirichletHashMapDist[DiscreteHOGCell],
-         Int) = {
-
-    def genDefaultDist = new DirichletHashMapDist[DiscreteHOGCell](pow(numParts, numBins).toLong)
-
-    var counter = 1
-    var deps = new HashMap[DiscreteHOGCell, DirichletHashMapDist[DiscreteHOGCell]].withDefaultValue(genDefaultDist)
-    val dist = new DirichletHashMapDist[DiscreteHOGCell](pow(numParts, numBins).toLong)
-
-    images.par.foreach { imgFile =>
-
-      val path = imgFile.getPath
-
-      println("handling " + label + " training image " + counter + " of " + images.length + ":\n\t" + path)
-
-      val img = CVTools.imreadGreyscale(path)
-
-      // normalized images are padded by 16 pixels on each side
-      val cropBox = BoundingBox(Point(16, 16), 64, 128)
-      val cropped = CVTools.cropImage(img, cropBox)
-
-      // compute HOG descriptors
-      val descs = CVTools.computeHOGInFullImage(cropped)(winSize, winStride, blockSize, blockStride, cellSize, numBins)
-      val discreteHOGs = descs.flatten.map(DiscreteHOGCell.discretizeHOGCell(_, numParts))
-
-      for (i <- 0 until discreteHOGs.length) {
-
-        val depDist = deps.getOrElse(discreteHOGs(i), genDefaultDist)
-
-        for (j <- 0 until discreteHOGs.length) {
-
-          if (i != j) {
-            // shouldn't be an expensive synchronization - probability of another
-            // thread using this specific dist simultaneously is low
-            depDist.synchronized {
-              depDist.addWord(discreteHOGs(j))
-            }
-          }
-
-        }
-
-        this.synchronized {
-          deps = deps.updated(discreteHOGs(i), depDist)
-        }
-
-      }
-
-      // synchronized internally
-      dist.addWords(discreteHOGs)
-
-      this.synchronized {
-        counter += 1
-      }
-
-    }
-
-    // one window per image
-    (deps, dist, counter)
-
-  }
-
-
-  // helper function to mine a set of dependent distributions from a set of negative images
-  def trainDepNegative (images: Array[File]) (numBins: Int, numParts: Int)
-      : (Map[DiscreteHOGCell, DirichletHashMapDist[DiscreteHOGCell]],
-         DirichletHashMapDist[DiscreteHOGCell],
-         Int) = {
-
-    def genDefaultDist = new DirichletHashMapDist[DiscreteHOGCell](pow(numParts, numBins).toLong)
-
-    var counter = 1
-    var winCounter = 0
-    var deps = new HashMap[DiscreteHOGCell, DirichletHashMapDist[DiscreteHOGCell]].withDefaultValue(genDefaultDist)
-    val dist = new DirichletHashMapDist[DiscreteHOGCell](pow(numParts, numBins).toLong)
-
-    images.par.foreach { imgFile =>
-
-      val path = imgFile.getPath
-
-      println("mining negative training image " + counter + " of " + images.length + ":\n\t" + path)
-
-      val img = CVTools.imreadGreyscale(path)
-
-      // compute HOG descriptors
-      val descs = CVTools.computeHOGWindows(img)(winSize, negWinStride, blockSize, blockStride, cellSize, numBins)
-      val discreteHOGs = descs.map(_.flatten.map(DiscreteHOGCell.discretizeHOGCell(_, numParts)))
-
-      // iterate over each window
-      for (w <- 0 until discreteHOGs.length) {
-        for (i <- 0 until discreteHOGs(w).length) {
-
-          val depDist = deps.getOrElse(discreteHOGs(w)(i), genDefaultDist)
-
-          for (j <- 0 until discreteHOGs(w).length) {
-
-            if (i != j) {
-              // shouldn't be an expensive synchronization - probability of another
-              // thread using this specific dist simultaneously is low
-              depDist.synchronized {
-                depDist.addWord(discreteHOGs(w)(j))
-              }
-            }
-
-          }
-
-          this.synchronized {
-            deps = deps.updated(discreteHOGs(w)(i), depDist)
-          }
-
-        }
-      }
-
-      // synchronized internally
-      dist.addWords(discreteHOGs.flatten)
-
-      this.synchronized {
-        counter += 1
-        winCounter += descs.length
-      }
-
-    }
-
-    (deps, dist, winCounter)
 
   }
 

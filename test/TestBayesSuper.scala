@@ -2,7 +2,7 @@ package imgdetect.test
 
 import imgdetect.cvtools.CVTools
 import imgdetect.util.{BayesContHOGDetector, BayesDiscHOGDetector, BayesianDetector,
-                       BoundingBox, ContinuousHOGCell, DiscreteHOGCell, MultivarNormalDist,
+                       BoundingBox, DiscreteHOGCell, MultivarNormalDist,
                        PASCALObjectLabel, PASPerson, Point, Negative}
 import java.io.{File, FileInputStream, ObjectInputStream}
 import scala.math.exp

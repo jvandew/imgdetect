@@ -13,7 +13,6 @@ util: ArrayDist.scala              	  \
 			BoundingBox.scala            	  \
 			ContinuousDistribution.scala    \
 			ContinuousHOGCell.scala         \
-			DependentBayesHOGDetector.scala \
 			DirichletHashMapDist.scala   	  \
 			DiscreteDistribution.scala   	  \
 			DiscreteHOGCell.scala        	  \
@@ -48,5 +47,4 @@ util: ArrayDist.scala              	  \
 		Detector.scala                  \
 		BayesianDetector.scala          \
 		BayesContHOGDetector.scala      \
-		BayesDiscHOGDetector.scala      \
-		DependentBayesHOGDetector.scala
+		BayesDiscHOGDetector.scala
