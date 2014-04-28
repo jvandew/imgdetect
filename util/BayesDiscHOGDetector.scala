@@ -21,28 +21,6 @@ class BayesDiscHOGDetector (dists: List[(PASCALObjectLabel, DiscreteDistribution
   }
 
 
-  // Perform detection on the given set of HOG descriptors. Returns a list of labels
-  // and the probability of that label given hogCells
-  def detect (hogCells: Array[DiscreteHOGCell]) : List[(PASCALObjectLabel, Double)] = {
-
-    val props = detectProps(hogCells)
-    val margLikelihood = props.foldLeft(0.0)((agg, lp) => agg + lp._2)
-    props.map(lp => (lp._1, lp._2 / margLikelihood))
-
-  }
-
-
-  // Perform detection on the given set of HOG descriptors. Returns a list of labels
-  // and the log probability of that label given hogCells
-  def detectLog (hogCells: Array[DiscreteHOGCell]) : List[(PASCALObjectLabel, Double)] = {
-
-    val logProps = detectLogProps(hogCells)
-    val logMargLikelihood = log(logProps.foldLeft(0.0)((agg, lp) => agg + exp(lp._2)))
-    logProps.map(lp => (lp._1, lp._2 - logMargLikelihood))
-
-  }
-
-
   // Compute the log proportionality of each label for the given set of HOG
   // descriptors. Returns a list of labels and the log proportionality of each.
   def detectLogProps (hogCells: Array[DiscreteHOGCell]) : List[(PASCALObjectLabel, Double)] = {
