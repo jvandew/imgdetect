@@ -1,5 +1,5 @@
 # unfortunately Scala mandates our classpath still include the jarchive
-classpath = .:../..:../share/OpenCV/java/opencv-248.jar
+classpath = .:../..:../lib/commons-math3-3.2.jar:../share/OpenCV/java/opencv-248.jar
 scalac += -cp $(classpath) -d ../..
 
 .PHONY: clean train

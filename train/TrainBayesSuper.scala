@@ -2,7 +2,7 @@ package imgdetect.train
 
 import imgdetect.cvtools.CVTools
 import imgdetect.util.{BayesContHOGDetector, BayesDiscHOGDetector, BoundingBox,
-                       DependentBayesHOGDetector, DirichletHashMapDist, DiscreteHOGCell,
+                       ContinuousHOGCell, DirichletHashMapDist, DiscreteHOGCell,
                        HashMapDist, MultivarNormalDist, Negative, PASCALAnnotation,
                        PASCALObjectLabel, PASPerson, Point, Utils}
 import java.io.{File, FileOutputStream, ObjectOutputStream}
@@ -19,6 +19,75 @@ object TrainBayesSuper {
   private val blockSize = CVTools.makeSize(16, 16)
   private val blockStride = CVTools.makeSize(16, 16)
   private val cellSize = CVTools.makeSize(8, 8)
+
+
+  // helper function to build an individual distribution for a set of images
+  def trainContLabel (images: Array[File], label: PASCALObjectLabel) (numBins: Int)
+      : (MultivarNormalDist[ContinuousHOGCell], Int) = {
+
+    var counter = 0
+
+    val hogs = images.par.map { imgFile =>
+
+      val path = imgFile.getPath
+
+      println("handling " + label + " training image " + counter + " of " + images.length + ":\n\t" + path)
+
+      val img = CVTools.imreadGreyscale(path)
+
+      // normalized images are padded by 16 pixels on each side
+      val cropBox = BoundingBox(Point(16, 16), 64, 128)
+      val cropped = CVTools.cropImage(img, cropBox)
+
+      // compute HOG descriptors
+      val descs = CVTools.computeHOGInFullImage(cropped)(winSize, winStride, blockSize, blockStride, cellSize, numBins)
+      val imgHogs = descs.flatten.map(new ContinuousHOGCell(_))
+
+      this.synchronized {
+        counter += 1
+      }
+
+      imgHogs
+
+    }
+
+    // one window per image
+    (new MultivarNormalDist[ContinuousHOGCell](hogs.toArray.flatten), counter)
+
+  }
+
+
+  // helper function to mine an individual distribution from a set of negative images
+  def trainContNegative (images: Array[File]) (numBins: Int)
+      : (MultivarNormalDist[ContinuousHOGCell], Int) = {
+
+    var counter = 1
+    var winCounter = 0
+
+    val hogs = images.par.map { imgFile =>
+
+      val path = imgFile.getPath
+
+      println("mining negative training image " + counter + " of " + images.length + ":\n\t" + path)
+
+      val img = CVTools.imreadGreyscale(path)
+
+      // compute HOG descriptors
+      val descs = CVTools.computeHOGWindows(img)(winSize, negWinStride, blockSize, blockStride, cellSize, numBins)
+      val imgHOGs = descs.flatten.flatten.map(new ContinuousHOGCell(_))
+
+      this.synchronized {
+        counter += 1
+        winCounter += descs.length
+      }
+
+      imgHOGs
+
+    }
+
+    (new MultivarNormalDist[ContinuousHOGCell](hogs.toArray.flatten), winCounter)
+
+  }
 
 
   // helper function to build a set of dependent distributions for a set of images
@@ -222,13 +291,13 @@ object TrainBayesSuper {
 
   /* Train a detector. Arguments:
    * 0: -norm = train on normalized dataset or -full = train on original full images
-   * 1: -dep = train a dependent detector or -ind = train a detector with (invalid)
-   *    assumptions about the independence of HOG cells in a detection window
+   * 1: -disc = train a discrete detector or -cont = train a continuous detector
    * 2: INRIA dataset location
-   * 3: number of bins to use in HOG descriptor
-   * 4: number of partitions to use for each gradient bin. this is used to take
+   * 3: file path for saving the learned detector
+   * 4: number of bins to use in HOG descriptor
+   * 5: number of partitions to use for each gradient bin. this is used to take
    *    the space of HOG cell descriptors from a "continuous" to a discrete space
-   * 5: file path for saving the learned detector
+   *    (discrete detector only)
    *
    *    Note the total number of discetized HOG descriptors will be
    *    [num partitions]^[num gradient bins]
@@ -238,9 +307,8 @@ object TrainBayesSuper {
     CVTools.loadLibrary
 
     val inriaHome = args(2)
-    val numBins = args(3).toInt
-    val numParts = args(4).toInt
-    val detectorFile = new File(args(5))
+    val detectorFile = new File(args(3))
+    val numBins = args(4).toInt
 
     val detectorOut = new ObjectOutputStream(new FileOutputStream(detectorFile))
 
@@ -254,7 +322,22 @@ object TrainBayesSuper {
         val prior = new HashMapDist[PASCALObjectLabel]
 
         val detector = args(1) match {
-          case "-ind" => {
+          case "-cont" => {
+
+            val (posDist, numPos) = trainContLabel(posImages, PASPerson)(numBins)
+            prior.addWordMultiple(PASPerson, numPos)
+
+            val (negDist, numNeg) = trainContNegative(negImages)(numBins)
+            prior.addWordMultiple(Negative, numNeg)
+
+            prior.display
+
+            new BayesContHOGDetector(List(PASPerson, Negative), List(posDist, negDist), prior)
+          }
+
+          case "-disc" => {
+
+            val numParts = args(5).toInt
 
             val (posDist, numPos) = trainLabel(posImages, PASPerson)(numBins, numParts)
             posDist.display
@@ -264,28 +347,11 @@ object TrainBayesSuper {
             negDist.display
             prior.addWordMultiple(Negative, numNeg)
 
-            // TODO(jacob) this really shouldn't be necessary
+            // TODO(jacob) this really shouldn't be necessary, should it?
             posDist.scale(numNeg.toDouble / numPos)
             prior.display
 
             new BayesDiscHOGDetector(List(PASPerson, Negative), List(posDist, negDist), prior)
-          }
-
-          // note: pointless experiment
-          case "-dep" => {
-
-            val (posDeps, posDist, numPos) = trainDepLabel(posImages, PASPerson)(numBins, numParts)
-            prior.addWordMultiple(PASPerson, numPos)
-
-            val (negDeps, negDist, numNeg) = trainDepNegative(negImages)(numBins, numParts)
-            prior.addWordMultiple(Negative, numNeg)
-
-            prior.display
-
-            new DependentBayesHOGDetector(List(PASPerson, Negative),
-                                          List(posDeps, negDeps),
-                                          List(posDist, negDist),
-                                          prior)
           }
         }
 
