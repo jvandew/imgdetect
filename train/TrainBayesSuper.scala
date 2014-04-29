@@ -1,10 +1,10 @@
 package imgdetect.train
 
 import imgdetect.cvtools.CVTools
-import imgdetect.util.{BayesContHOGDetector, BayesDiscHOGDetector, BoundingBox,
-                       DirichletHashMapDist, DiscreteHOGCell, HashMapDist,
-                       MultivarNormalDist, Negative, PASCALAnnotation, PASCALObjectLabel,
-                       PASPerson, Point, Utils}
+import imgdetect.util.{BayesContHOGDetector, BayesContLocationHOGDetector,
+                       BayesDiscHOGDetector, BoundingBox, DirichletHashMapDist,
+                       DiscreteHOGCell, HashMapDist, MultivarNormalDist, Negative,
+                       PASCALAnnotation, PASCALObjectLabel, PASPerson, Point, Utils}
 import java.io.{File, FileInputStream, FileOutputStream, ObjectInputStream, ObjectOutputStream}
 import org.opencv.core.{Mat, Size}
 import scala.collection.immutable.{HashMap, Map}
@@ -20,6 +20,114 @@ object TrainBayesSuper {
   private val blockSize = CVTools.makeSize(16, 16)
   private val blockStride = CVTools.makeSize(16, 16)
   private val cellSize = CVTools.makeSize(8, 8)
+
+
+  // helper function to build an individual distribution for a set of images
+  def trainContLocLabel (images: Array[File], label: PASCALObjectLabel)
+                        (numBins: Int)
+                        (hogFiles: Array[File])
+      : (Array[MultivarNormalDist], Int) = {
+
+    var counter = 0
+    val outs = hogFiles.map(f => new ObjectOutputStream(new FileOutputStream(f)))
+
+    images.par.foreach { imgFile =>
+
+      val path = imgFile.getPath
+
+      println("handling " + label + " training image " + counter + " of " + images.length + ":\n\t" + path)
+
+      val img = CVTools.imreadGreyscale(path)
+
+      // normalized images are padded by 16 pixels on each side
+      val cropBox = BoundingBox(Point(16, 16), 64, 128)
+      val cropped = CVTools.cropImage(img, cropBox)
+
+      // compute HOG descriptors
+      val descs = CVTools.computeHOGInFullImage(cropped)(winSize, winStride, blockSize, blockStride, cellSize, numBins)
+      val hogs = descs.flatten
+
+      // write hog cells to their appropriate location files
+      for (i <- 0 until hogs.length) {
+        outs(i).synchronized {
+          outs(i).writeObject(hogs(i))
+          outs(i).reset
+        }
+      }
+
+      this.synchronized {
+        counter += 1
+      }
+
+    }
+
+    outs.foreach(_.close)
+    val ins = hogFiles.map(f => new ObjectInputStream(new FileInputStream(f)))
+
+    val dists = ins.map { in =>
+      val hogs = Array.tabulate(counter)(_ => in.readObject.asInstanceOf[Array[Float]])
+      MultivarNormalDist(hogs)
+    }
+
+    ins.foreach(_.close)
+
+    // one window per image
+    (dists, counter)
+
+  }
+
+
+  // helper function to mine an individual distribution from a set of negative images
+  def trainContLocNegative (images: Array[File]) (numBins: Int) (hogFiles: Array[File])
+      : (Array[MultivarNormalDist], Int) = {
+
+    var counter = 1
+    var winCounter = 0
+    val rand = new Random
+    val outs = hogFiles.map(f => new ObjectOutputStream(new FileOutputStream(f)))
+
+    images.par.foreach { imgFile =>
+
+      val path = imgFile.getPath
+
+      println("mining negative training image " + counter + " of " + images.length + ":\n\t" + path )
+
+      val img = CVTools.imreadGreyscale(path)
+
+      // compute HOG descriptors
+      val descs = CVTools.computeHOGWindows(img)(winSize, negWinStride, blockSize, blockStride, cellSize, numBins)
+      val winHOGs = descs.map(_.flatten)
+
+      // write hog cells to their appropriate location files
+      winHOGs.foreach { hogs =>
+        for (i <- 0 until hogs.length) {
+          outs(i).synchronized {
+            outs(i).writeObject(hogs(i))
+            outs(i).reset
+          }
+        }
+      }
+
+      this.synchronized {
+        counter += 1
+        winCounter += descs.length
+      }
+
+    }
+
+    outs.foreach(_.close)
+    val ins = hogFiles.map(f => new ObjectInputStream(new FileInputStream(f)))
+
+    val dists = ins.map { in =>
+      val hogs = Array.tabulate(winCounter)(_ => in.readObject.asInstanceOf[Array[Float]])
+      MultivarNormalDist(hogs)
+    }
+
+    ins.foreach(_.close)
+
+    (dists, winCounter)
+
+  }
 
 
   // helper function to build an individual distribution for a set of images
@@ -167,7 +275,9 @@ object TrainBayesSuper {
 
   /* Train a detector. Arguments:
    * 0: -norm = train on normalized dataset or -full = train on original full images
-   * 1: -disc = train a discrete detector or -cont = train a continuous detector
+   * 1: -disc = train a discrete detector
+   *    -cont = train a continuous detector
+   *    -contLoc = train a location-aware continuous detector
    * 2: INRIA dataset location
    * 3: file path for saving the learned detector
    * 4: number of bins to use in HOG descriptor
@@ -177,6 +287,7 @@ object TrainBayesSuper {
    *    -cont case: the proportion of negative training data to use. as the dataset
    *    can be too large to fit in memory (necessary for computing covariances) this
    *    provides a method for making training possible
+   *    -contLoc case: no parameter required
    *
    *    Note the total number of discetized HOG descriptors will be
    *    [num partitions]^[num gradient bins]
@@ -214,6 +325,30 @@ object TrainBayesSuper {
             prior.display
 
             new BayesContHOGDetector(List(PASPerson, Negative), List(posDist, negDist), prior)
+          }
+
+          case "-contLoc" => {
+
+            val vectorLength = ((winSize.width / cellSize.width) * (winSize.height / cellSize.height)).toInt
+
+            val hogDir = File.createTempFile("hogs", "dir", new File("."))
+            hogDir.delete
+            hogDir.mkdir
+            hogDir.deleteOnExit
+            val hogFiles = Array.tabulate(vectorLength)(i => File.createTempFile("hog_" + i, "loc", hogDir))
+
+            val (posDists, numPos) = trainContLocLabel(posImages, PASPerson)(numBins)(hogFiles)
+            prior.addWordMultiple(PASPerson, numPos)
+
+            val (negDists, numNeg) = trainContLocNegative(negImages)(numBins)(hogFiles)
+            prior.addWordMultiple(Negative, numNeg)
+
+            prior.display
+
+            new BayesContLocationHOGDetector(List(PASPerson, Negative),
+                                             List(posDists, negDists),
+                                             prior,
+                                             vectorLength)
           }
 
           case "-disc" => {

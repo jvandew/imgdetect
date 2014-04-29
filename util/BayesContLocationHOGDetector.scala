@@ -10,7 +10,7 @@ import scala.math.{exp, log}
  * takes a list of labels and an array of continuous distributions for each of
  * them, as well as a prior and the length of its trained HOG vector.
  */
-class BayesContLocationHOGDetector (dists: List[(PASCALObjectLabel, Array[ContinuousDistribution[Array[Double]]])],
+class BayesContLocationHOGDetector (dists: List[(PASCALObjectLabel, Array[_ <: ContinuousDistribution[Array[Double]]])],
                                     prior: DiscreteDistribution[PASCALObjectLabel],
                                     vectorLength: Int)
   extends BayesianDetector[Array[Double]] {
@@ -21,7 +21,7 @@ class BayesContLocationHOGDetector (dists: List[(PASCALObjectLabel, Array[Contin
   private val distMap = new HashMap[PASCALObjectLabel, Array[ContinuousDistribution[Array[Double]]]] ++ dists
 
   def this (labels: List[PASCALObjectLabel],
-            dists: List[Array[ContinuousDistribution[Array[Double]]]],
+            dists: List[Array[_ <: ContinuousDistribution[Array[Double]]]],
             prior: DiscreteDistribution[PASCALObjectLabel],
             vectorLength: Int) = {
 

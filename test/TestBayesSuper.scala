@@ -1,9 +1,10 @@
 package imgdetect.test
 
 import imgdetect.cvtools.CVTools
-import imgdetect.util.{BayesContHOGDetector, BayesDiscHOGDetector, BayesianDetector,
-                       BoundingBox, DiscreteHOGCell, MultivarNormalDist,
-                       PASCALObjectLabel, PASPerson, Point, Negative}
+import imgdetect.util.{BayesContHOGDetector, BayesContLocationHOGDetector,
+                       BayesDiscHOGDetector, BayesianDetector, BoundingBox,
+                       DiscreteHOGCell, MultivarNormalDist, PASCALObjectLabel, PASPerson,
+                       Point, Negative}
 import java.io.{File, FileInputStream, ObjectInputStream}
 import scala.math.exp
 
@@ -251,6 +252,14 @@ object TestBayesSuper {
 
         testContPositive(posImages)(PASPerson)(contDet)(numBins)
         testContNegative(negImages)(contDet)(numBins)
+      }
+
+      case contLocDet: BayesContLocationHOGDetector => {
+
+        println("Testing continuous location-aware Bayesian detector...\n")
+
+        testContPositive(posImages)(PASPerson)(contLocDet)(numBins)
+        testContNegative(negImages)(contLocDet)(numBins)
       }
 
       case discDet: BayesDiscHOGDetector => {
