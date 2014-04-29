@@ -6,7 +6,6 @@ import imgdetect.util.{BayesContHOGDetector, BayesContLocationHOGDetector,
                        DiscreteHOGCell, MultivarNormalDist, PASCALObjectLabel, PASPerson,
                        Point, Negative}
 import java.io.{File, FileInputStream, ObjectInputStream}
-import scala.math.exp
 
 // Test a supervised Bayesian detector
 object TestBayesSuper {
@@ -46,7 +45,7 @@ object TestBayesSuper {
       val descs = CVTools.computeHOGInFullImage(cropped)(winSize, winStride, blockSize, blockStride, cellSize, numBins)
 
       val results = detector.detectLogProps(descs.flatten.map(_.map(_.toDouble)))
-      results.foreach(lp => println("\t" + lp._1 + ": " + exp(lp._2)))
+      results.foreach(lp => println("\t" + lp._1 + ": " + lp._2))
 
       this.synchronized {
 
@@ -148,7 +147,7 @@ object TestBayesSuper {
       val discreteHOGs = descs.flatten.map(DiscreteHOGCell.discretizeHOGCell(_, numParts))
 
       val results = detector.detectLogProps(discreteHOGs)
-      results.foreach(lp => println("\t" + lp._1 + ": " + exp(lp._2)))
+      results.foreach(lp => println("\t" + lp._1 + ": " + lp._2))
 
       this.synchronized {
 
