@@ -1,4 +1,4 @@
-package imgdetect.util
+package imgdetect.prob
 
 import org.apache.commons.math3.distribution.MultivariateNormalDistribution
 import org.apache.commons.math3.stat.correlation.Covariance

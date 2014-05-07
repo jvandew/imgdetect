@@ -1,5 +1,7 @@
-package imgdetect.util
+package imgdetect.detector
 
+import imgdetect.prob.DiscreteDistribution
+import imgdetect.util.{DiscreteHOGCell, PASCALObjectLabel}
 import scala.collection.immutable.HashMap
 import scala.math.{exp, log}
 

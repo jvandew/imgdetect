@@ -1,10 +1,9 @@
 package imgdetect.test
 
 import imgdetect.cvtools.CVTools
-import imgdetect.util.{BayesContHOGDetector, BayesContLocationHOGDetector,
-                       BayesDiscHOGDetector, BayesianDetector, BoundingBox,
-                       DiscreteHOGCell, MultivarNormalDist, PASCALObjectLabel, PASPerson,
-                       Point, Negative}
+import imgdetect.detector.{BayesContHOGDetector, BayesContLocationHOGDetector,
+                           BayesDiscHOGDetector, BayesianDetector}
+import imgdetect.util.{BoundingBox, DiscreteHOGCell, Negative, PASCALObjectLabel, PASPerson, Point}
 import java.io.{File, FileInputStream, ObjectInputStream}
 
 // Test a supervised Bayesian detector

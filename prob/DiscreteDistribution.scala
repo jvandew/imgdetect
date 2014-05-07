@@ -1,4 +1,4 @@
-package imgdetect.util
+package imgdetect.prob
 
 // abstract class for a discrete probability distribution
 trait DiscreteDistribution[T] extends Distribution[T] {

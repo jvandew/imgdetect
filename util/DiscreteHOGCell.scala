@@ -4,8 +4,6 @@ package imgdetect.util
 object DiscreteHOGCell {
 
   // convert a cell of continuous HOG gradients to a DiscreteHOGCell
-  // TODO(jacob) I believe it's technically possible for floating point errors
-  //     to cause (g * numParts).toInt == numParts, an error condition
   def discretizeHOGCell (grads: Array[Float], numParts: Int) : DiscreteHOGCell =
     new DiscreteHOGCell(grads.length, numParts, grads.map(g => (g * numParts).toInt))
 

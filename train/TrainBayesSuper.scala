@@ -1,10 +1,11 @@
 package imgdetect.train
 
 import imgdetect.cvtools.CVTools
-import imgdetect.util.{BayesContHOGDetector, BayesContLocationHOGDetector,
-                       BayesDiscHOGDetector, BoundingBox, DirichletHashMapDist,
-                       DiscreteHOGCell, HashMapDist, MultivarNormalDist, Negative,
-                       PASCALAnnotation, PASCALObjectLabel, PASPerson, Point, Utils}
+import imgdetect.detector.{BayesContHOGDetector, BayesContLocationHOGDetector,
+                           BayesDiscHOGDetector}
+import imgdetect.prob.{DirichletHashMapDist, MultivarNormalDist}
+import imgdetect.util.{BoundingBox, DiscreteHOGCell, Negative, PASCALAnnotation,
+                       PASCALObjectLabel, PASPerson, Point, Utils}
 import java.io.{File, FileInputStream, FileOutputStream, ObjectInputStream, ObjectOutputStream}
 import org.opencv.core.{Mat, Size}
 import scala.collection.immutable.{HashMap, Map}
@@ -309,7 +310,7 @@ object TrainBayesSuper {
         val negFolder = new File(inriaHome, "train_64x128_H96/neg")
         val posImages = posFolder.listFiles
         val negImages = negFolder.listFiles
-        val prior = new HashMapDist[PASCALObjectLabel]
+        val prior = new DirichletHashMapDist[PASCALObjectLabel](2)
 
         val detector = args(1) match {
           case "-cont" => {

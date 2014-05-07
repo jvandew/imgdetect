@@ -1,4 +1,4 @@
-package imgdetect.util
+package imgdetect.prob
 
 import scala.collection.mutable.HashMap
 import scala.math.log

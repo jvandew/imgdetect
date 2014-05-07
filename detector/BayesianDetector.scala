@@ -1,5 +1,6 @@
-package imgdetect.util
+package imgdetect.detector
 
+import imgdetect.util.PASCALObjectLabel
 import scala.math.{exp, log}
 
 trait BayesianDetector[T] extends Detector[T] {

@@ -1,4 +1,4 @@
-package imgdetect.util
+package imgdetect.prob
 
 // trait for a generic probabilitity distribution
 trait Distribution[T] extends Serializable {

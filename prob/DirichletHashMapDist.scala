@@ -1,4 +1,4 @@
-package imgdetect.util
+package imgdetect.prob
 
 import org.apache.commons.math3.special.Gamma
 import scala.collection.mutable.HashMap

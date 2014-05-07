@@ -1,4 +1,6 @@
-package imgdetect.util
+package imgdetect.detector
+
+import imgdetect.util.PASCALObjectLabel
 
 trait Detector[T] extends Serializable {
 

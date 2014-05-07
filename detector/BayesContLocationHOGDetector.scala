@@ -1,23 +1,32 @@
-package imgdetect.util
+package imgdetect.detector
 
-import org.apache.commons.math3.distribution.MultivariateNormalDistribution
+import imgdetect.prob.{ContinuousDistribution, DiscreteDistribution}
+import imgdetect.util.PASCALObjectLabel
 import scala.collection.immutable.HashMap
 import scala.math.{exp, log}
 
-// A BayesianDetector composed of a set of learned Gaussian distributions
-// on HOG features. Constructor takes a list of Gaussians and their labels.
-// This detector still takes a discrete prior distribution
-class BayesContHOGDetector (dists: List[(PASCALObjectLabel, ContinuousDistribution[Array[Double]])],
-                            prior: DiscreteDistribution[PASCALObjectLabel])
+/* A BayesianDetector composed of a set of learned Gaussian distributions on HOG
+ * features. Unlike other detectors a BayesContLocationHOGDetector attempts to
+ * take a HOG cell's location into consideration during detection. Constructor
+ * takes a list of labels and an array of continuous distributions for each of
+ * them, as well as a prior and the length of its trained HOG vector.
+ */
+class BayesContLocationHOGDetector (dists: List[(PASCALObjectLabel, Array[_ <: ContinuousDistribution[Array[Double]]])],
+                                    prior: DiscreteDistribution[PASCALObjectLabel],
+                                    vectorLength: Int)
   extends BayesianDetector[Array[Double]] {
 
-  private val distMap = new HashMap[PASCALObjectLabel, ContinuousDistribution[Array[Double]]] ++ dists
+  require(dists.forall(_._2.length == vectorLength),
+          "Number of distributions for labels not all equal to vectorLength")
+
+  private val distMap = new HashMap[PASCALObjectLabel, Array[ContinuousDistribution[Array[Double]]]] ++ dists
 
   def this (labels: List[PASCALObjectLabel],
-            dists: List[ContinuousDistribution[Array[Double]]],
-            prior: DiscreteDistribution[PASCALObjectLabel]) = {
+            dists: List[Array[_ <: ContinuousDistribution[Array[Double]]]],
+            prior: DiscreteDistribution[PASCALObjectLabel],
+            vectorLength: Int) = {
 
-    this(labels.zip(dists), prior)
+    this(labels.zip(dists), prior, vectorLength)
     require(labels.length == dists.length, "Number of labels and distributions must match")
 
   }
@@ -54,12 +63,27 @@ class BayesContHOGDetector (dists: List[(PASCALObjectLabel, ContinuousDistributi
 
 
   // compute the likelihood of the given HOG cells under the given label
-  def likelihood (hogCells: Array[Array[Double]], label: PASCALObjectLabel) : Double =
-    distMap(label).conjugateProb(hogCells)
+  def likelihood (hogCells: Array[Array[Double]], label: PASCALObjectLabel) : Double = {
+
+    var res = 1.0
+    for (i <- 0 until vectorLength) {
+      res *= distMap(label)(i).prob(hogCells(i))
+    }
+
+    res
+  }
+
 
   // compute the log likelihood of the given HOG cell under the given label
-  def logLikelihood (hogCells: Array[Array[Double]], label: PASCALObjectLabel) : Double =
-    distMap(label).logConjugateProb(hogCells)
+  def logLikelihood (hogCells: Array[Array[Double]], label: PASCALObjectLabel) : Double = {
+
+    var res = 0.0
+    for (i <- 0 until vectorLength) {
+      res += distMap(label)(i).logProb(hogCells(i))
+    }
+
+    res
+  }
 
 
   def logPrior (label: PASCALObjectLabel) : Double = prior.logProb(label)
