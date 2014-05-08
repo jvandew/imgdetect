@@ -232,7 +232,6 @@ object TestBayesSuper {
 
     CVTools.loadLibrary
 
-    val detectorFile = new File(args(0))
     val inriaHome = args(1)
     val numBins = args(2).toInt
 
@@ -241,7 +240,7 @@ object TestBayesSuper {
     val posImages = posFolder.listFiles
     val negImages = negFolder.listFiles
 
-    val detectorIn = new ObjectInputStream(new FileInputStream(detectorFile))
+    val detectorIn = new ObjectInputStream(new FileInputStream(args(0)))
 
     detectorIn.readObject match {
       case contDet: BayesContHOGDetector => {
@@ -270,7 +269,7 @@ object TestBayesSuper {
       }
 
       case _ =>
-        throw new IllegalArgumentException("A detector could not be parsed from " + detectorFile)
+        throw new IllegalArgumentException("A detector could not be parsed from " + args(0))
 
     }
   }

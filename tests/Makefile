@@ -1,5 +1,5 @@
 # unfortunately Scala mandates our classpath still include the jarchive
-classpath = .:../..:../share/OpenCV/java/opencv-248.jar
+classpath = .:../..:../share/OpenCV/java/opencv-249.jar
 scalac += -cp $(classpath) -d ../..
 
 .PHONY: clean tests

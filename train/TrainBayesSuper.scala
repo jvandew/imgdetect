@@ -65,9 +65,15 @@ object TrainBayesSuper {
     outs.foreach(_.close)
     val ins = hogFiles.map(f => new ObjectInputStream(new FileInputStream(f)))
 
+    var distCount = 0
     val dists = ins.map { in =>
+
+      distCount += 1
+      println("computing distribution " + distCount + " of " + ins.length)
+
       val hogs = Array.tabulate(counter)(_ => in.readObject.asInstanceOf[Array[Float]])
       MultivarNormalDist(hogs)
+
     }
 
     ins.foreach(_.close)
@@ -119,9 +125,15 @@ object TrainBayesSuper {
     outs.foreach(_.close)
     val ins = hogFiles.map(f => new ObjectInputStream(new FileInputStream(f)))
 
+    var distCount = 0
     val dists = ins.map { in =>
+
+      distCount += 1
+      println("computing distribution " + distCount + " of " + ins.length)
+
       val hogs = Array.tabulate(winCounter)(_ => in.readObject.asInstanceOf[Array[Float]])
       MultivarNormalDist(hogs)
+
     }
 
     ins.foreach(_.close)
@@ -298,10 +310,9 @@ object TrainBayesSuper {
     CVTools.loadLibrary
 
     val inriaHome = args(2)
-    val detectorFile = new File(args(3))
     val numBins = args(4).toInt
 
-    val detectorOut = new ObjectOutputStream(new FileOutputStream(detectorFile))
+    val detectorOut = new ObjectOutputStream(new FileOutputStream(args(3)))
 
     args(0) match {
       case "-norm" => {

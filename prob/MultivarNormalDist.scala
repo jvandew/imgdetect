@@ -41,6 +41,8 @@ class MultivarNormalDist (means: Array[Double], covarMatrix: Array[Array[Double]
 
   def logProb (vector: Array[Double]) : Double = log(dist.density(vector))
 
+  def mean () : Array[Double] = means
+
   def prob (vector: Array[Double]) : Double = dist.density(vector)
 
 }

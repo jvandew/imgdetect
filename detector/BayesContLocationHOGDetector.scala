@@ -19,7 +19,7 @@ class BayesContLocationHOGDetector (dists: List[(PASCALObjectLabel, Array[_ <: C
   require(dists.forall(_._2.length == vectorLength),
           "Number of distributions for labels not all equal to vectorLength")
 
-  private val distMap = new HashMap[PASCALObjectLabel, Array[ContinuousDistribution[Array[Double]]]] ++ dists
+  val distMap = new HashMap[PASCALObjectLabel, Array[ContinuousDistribution[Array[Double]]]] ++ dists
 
   def this (labels: List[PASCALObjectLabel],
             dists: List[Array[_ <: ContinuousDistribution[Array[Double]]]],

@@ -11,7 +11,7 @@ class BayesDiscHOGDetector (dists: List[(PASCALObjectLabel, DiscreteDistribution
                             prior: DiscreteDistribution[PASCALObjectLabel])
   extends BayesianDetector[DiscreteHOGCell] {
 
-  private val distMap = new HashMap[PASCALObjectLabel, DiscreteDistribution[DiscreteHOGCell]] ++ dists
+  val distMap = new HashMap[PASCALObjectLabel, DiscreteDistribution[DiscreteHOGCell]] ++ dists
 
   def this (labels: List[PASCALObjectLabel],
             dists: List[DiscreteDistribution[DiscreteHOGCell]],

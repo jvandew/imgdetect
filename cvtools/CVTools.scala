@@ -5,11 +5,12 @@ import java.awt.image.BufferedImage
 import java.io.ByteArrayInputStream
 import javax.imageio.ImageIO
 import javax.swing.{ImageIcon, JFrame, JLabel, WindowConstants}
-import org.opencv.core.{Core, Mat, MatOfByte, MatOfFloat, MatOfPoint, Rect, Size, Scalar}
+import org.opencv.core.{Core, CvType, Mat, MatOfByte, MatOfFloat, MatOfPoint,
+                        Rect, Size, Scalar}
 import org.opencv.highgui.Highgui
 import org.opencv.imgproc.Imgproc
 import org.opencv.objdetect.HOGDescriptor
-import scala.math.{cos, sin, toRadians}
+import scala.math.{cos, Pi, pow, sin, toRadians}
 
 // a static object containing useful tools for interfacing with OpenCV
 // the goal is to have all OpenCV interaction happen within the cvtools package
@@ -120,11 +121,7 @@ object CVTools {
                                blockStride: Size, cellSize: Size, numBins: Int)
       : Array[Array[Array[Float]]] = {
 
-    val imgSize = img.size
-    val cellsInXDir = (imgSize.width / cellSize.width).toInt
-    val cellsInYDir = (imgSize.height / cellSize.height).toInt
-    val allCellsBox = BoundingBox(Point(0, 0), Point(cellsInXDir, cellsInYDir))
-
+    val allCellsBox = cellBox(img)(cellSize)
     aggregateHOGInBox(img)(allCellsBox)(descVals)(winSize, winStride, blockSize, blockStride, cellSize, numBins)
 
   }
@@ -216,26 +213,28 @@ object CVTools {
   }
 
 
+  // get a bounding box representing the size of the image in HOG cells
+  def cellBox (img: Mat) (cellSize: Size) : BoundingBox = {
+
+    val imgSize = img.size
+    val cellsInXDir = (imgSize.width / cellSize.width).toInt
+    val cellsInYDir = (imgSize.height / cellSize.height).toInt
+
+    BoundingBox(Point(0, 0), Point(cellsInXDir, cellsInYDir))
+
+  }
+
+
   // compute a set of HOG descriptors for a given image and bounding box and visualize them via Swing
   def computeAndDisplayHOGBox (img: Mat) (box: BoundingBox) (winSize: Size, winStride: Size,
                                                              blockSize: Size, blockStride: Size,
                                                              cellSize: Size, numBins: Int)
-                              (visScaler: Float) (windowTitle: String) : Unit = {
-
-    val colorimg = new Mat
-    Imgproc.cvtColor(img, colorimg, Imgproc.COLOR_GRAY2RGB)
+                              (visScalar: Float) (windowTitle: String) : Unit = {
 
     val gradStrengths = computeHOGInBox(img)(box)(winSize, winStride, blockSize, blockStride, cellSize, numBins)
-    val hogimg = getHOGBoxVisual(colorimg)(box)(gradStrengths)(cellSize, numBins)(visScaler)
+    val hogimg = getHOGBoxVisual(img)(box)(gradStrengths)(cellSize, numBins)(visScalar)
 
-    val byteMat = new MatOfByte
-    Highgui.imencode(".png", hogimg, byteMat)
-
-    val bytes = byteMat.toArray
-    val in = new ByteArrayInputStream(bytes)
-    val bufImg = ImageIO.read(in)
-
-    displayBuffImage(bufImg)(windowTitle)
+    displayImage(hogimg)(windowTitle)
 
   }
 
@@ -244,14 +243,10 @@ object CVTools {
   def computeAndDisplayHOGFull (img: Mat) (winSize: Size, winStride: Size,
                                            blockSize: Size, blockStride: Size,
                                            cellSize: Size, numBins: Int)
-                              (visScaler: Float) (windowTitle: String) : Unit = {
+                              (visScalar: Float) (windowTitle: String) : Unit = {
 
-    val imgSize = img.size
-    val cellsInXDir = (imgSize.width / cellSize.width).toInt
-    val cellsInYDir = (imgSize.height / cellSize.height).toInt
-    val allCellsBox = BoundingBox(Point(0, 0), Point(cellsInXDir, cellsInYDir))
-
-    computeAndDisplayHOGBox(img)(allCellsBox)(winSize, winStride, blockSize, blockStride, cellSize, numBins)(visScaler)(windowTitle)
+    val allCellsBox = cellBox(img)(cellSize)
+    computeAndDisplayHOGBox(img)(allCellsBox)(winSize, winStride, blockSize, blockStride, cellSize, numBins)(visScalar)(windowTitle)
 
   }
 
@@ -284,11 +279,7 @@ object CVTools {
                                         blockStride: Size, cellSize: Size, numBins: Int)
       : Array[Array[Array[Float]]] = {
 
-    val imgSize = img.size
-    val cellsInXDir = (imgSize.width / cellSize.width).toInt
-    val cellsInYDir = (imgSize.height / cellSize.height).toInt
-    val allCellsBox = BoundingBox(Point(0, 0), Point(cellsInXDir, cellsInYDir))
-
+    val allCellsBox = cellBox(img)(cellSize)
     computeHOGInBox(img)(allCellsBox)(winSize, winStride, blockSize, blockStride, cellSize, numBins)
 
   }
@@ -339,12 +330,30 @@ object CVTools {
   }
 
 
+  // display an image encoded as a Mat
+  def displayImage (image: Mat) (windowTitle: String) : Unit = {
+
+    val byteMat = new MatOfByte
+    Highgui.imencode(".png", image, byteMat)
+
+    val bytes = byteMat.toArray
+    val in = new ByteArrayInputStream(bytes)
+    val bufImg = ImageIO.read(in)
+
+    displayBuffImage(bufImg)(windowTitle)
+
+  }
+
+
   // Assistance with visualization algorithm found here:
   // http://www.juergenwiki.de/work/wiki/doku.php?id=public%3ahog_descriptor_computation_and_visualization
   def getHOGBoxVisual (image: Mat) (box: BoundingBox) (gradStrengths: Array[Array[Array[Float]]])
-                      (cellSize: Size, numBins: Int) (visScaler: Float) : Mat = {
+                      (cellSize: Size, numBins: Int) (visScalar: Float) : Mat = {
 
-    val img = image.clone
+
+    val img = new Mat
+    Imgproc.cvtColor(image, img, Imgproc.COLOR_GRAY2RGB)
+
     val binRads = toRadians(180.0 / numBins)
 
     for (celly <- box.topLeft.y until box.bottomRight.y) {
@@ -360,26 +369,21 @@ object CVTools {
         for (bin <- 0 until numBins) {
 
           val gradStr = gradStrengths(celly - box.topLeft.y)(cellx - box.topLeft.x)(bin)
+          val currRad = bin*binRads + binRads / 2
+          val dirVecX = cos(currRad)
+          val dirVecY = sin(currRad)
+          val maxVecLen = cellSize.width / 2
+          val mx = tlX + cellSize.width / 2
+          val my = tlY + cellSize.height / 2
+          val xLen = dirVecX * gradStr * maxVecLen * visScalar
+          val yLen = dirVecY * gradStr * maxVecLen * visScalar
 
-          if (gradStr > 0) {
+          val p1 = new CVPoint(mx - xLen, my - yLen)
+          val p2 = new CVPoint(mx + xLen, my + yLen)
 
-            val currRad = bin*binRads + binRads / 2
-            val dirVecX = cos(currRad)
-            val dirVecY = sin(currRad)
-            val maxVecLen = cellSize.width / 2
-            val mx = tlX + cellSize.width / 2
-            val my = tlY + cellSize.height / 2
-            val xLen = dirVecX * gradStr * maxVecLen * visScaler
-            val yLen = dirVecY * gradStr * maxVecLen * visScaler
+          Core.line(img, p1, p2, new Scalar(0, 255, 0), 1)
 
-            val p1 = new CVPoint(mx - xLen, my - yLen)
-            val p2 = new CVPoint(mx + xLen, my + yLen)
-
-            Core.line(img, p1, p2, new Scalar(0, 255, 0), 1)
-
-          }
         }
-
       }
     }
 
@@ -388,15 +392,53 @@ object CVTools {
 
 
   def getHOGFullVisual (image: Mat) (gradStrengths: Array[Array[Array[Float]]])
-                       (cellSize: Size, numBins: Int) (visScaler: Float) : Mat = {
+                       (cellSize: Size, numBins: Int) (visScalar: Float) : Mat = {
 
-    val imgSize = image.size
-    val cellsInXDir = (imgSize.width / cellSize.width).toInt
-    val cellsInYDir = (imgSize.height / cellSize.height).toInt
-    val allCellsBox = BoundingBox(Point(0, 0), Point(cellsInXDir, cellsInYDir))
+    val allCellsBox = cellBox(image)(cellSize)
+    getHOGBoxVisual(image)(allCellsBox)(gradStrengths)(cellSize, numBins)(visScalar)
 
-    getHOGBoxVisual(image)(allCellsBox)(gradStrengths)(cellSize, numBins)(visScaler)
+  }
 
+
+  // Used to visualize a trained model
+  def getModelVisual (image: Mat) (gradStrengths: Array[Array[Array[Float]]])
+                     (cellSize: Size, numBins: Int) (visScalar: Float) (visExpScalar: Float)
+      : Mat = {
+
+    val img = image.clone
+
+    val box = cellBox(image)(cellSize)
+    val binRads = toRadians(180.0 / numBins)
+
+    for (celly <- box.topLeft.y until box.bottomRight.y) {
+      for (cellx <- box.topLeft.x until box.bottomRight.x) {
+
+        val tlX = cellx * cellSize.width
+        val tlY = celly * cellSize.height
+
+        for (bin <- 0 until numBins) {
+
+          val gradStr = gradStrengths(celly - box.topLeft.y)(cellx - box.topLeft.x)(bin)
+          val currRad = bin*binRads + (binRads + Pi) / 2
+          val dirVecX = cos(currRad)
+          val dirVecY = sin(currRad)
+          val maxVecLen = cellSize.width / 2
+          val mx = tlX + cellSize.width / 2
+          val my = tlY + cellSize.height / 2
+          val xLen = dirVecX * maxVecLen
+          val yLen = dirVecY * maxVecLen
+
+          val p1 = new CVPoint(mx - xLen, my - yLen)
+          val p2 = new CVPoint(mx + xLen, my + yLen)
+          val color = new Scalar(pow(gradStr * visScalar, visExpScalar) * 255)
+
+          Core.line(img, p1, p2, color, 1)
+
+        }
+      }
+    }
+
+    img
   }
 
 
@@ -429,5 +471,15 @@ object CVTools {
   // create a new OpenCV Size object and return it
   // this is meant more for use outside this package
   def makeSize (width: Double, height: Double) : Size = new Size(width, height)
+
+
+  // create a new Mat representing a solid grayscale image
+  def newGrayscaleImage (width: Int, height: Int) (color: Byte) : Mat =
+    new Mat(width, height, CvType.CV_8U, new Scalar(color.toDouble))
+
+
+  // create a new Mat representing a solid greyscale image (yes again...)
+  def newGreyscaleImage (width: Int, height: Int) (color: Byte) : Mat =
+    newGrayscaleImage(width, height)(color)
 
 }

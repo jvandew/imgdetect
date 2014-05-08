@@ -12,7 +12,7 @@ class BayesContHOGDetector (dists: List[(PASCALObjectLabel, ContinuousDistributi
                             prior: DiscreteDistribution[PASCALObjectLabel])
   extends BayesianDetector[Array[Double]] {
 
-  private val distMap = new HashMap[PASCALObjectLabel, ContinuousDistribution[Array[Double]]] ++ dists
+  val distMap = new HashMap[PASCALObjectLabel, ContinuousDistribution[Array[Double]]] ++ dists
 
   def this (labels: List[PASCALObjectLabel],
             dists: List[ContinuousDistribution[Array[Double]]],

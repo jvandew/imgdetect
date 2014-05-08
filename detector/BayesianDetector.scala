@@ -1,6 +1,8 @@
 package imgdetect.detector
 
+import imgdetect.prob.Distribution
 import imgdetect.util.PASCALObjectLabel
+import scala.collection.immutable.HashMap
 import scala.math.{exp, log}
 
 trait BayesianDetector[T] extends Detector[T] {
